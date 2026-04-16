@@ -7,6 +7,8 @@ export interface UseFileUploadOptions {
   chunkSize?: number;
   headers?: Record<string, string> | (() => Record<string, string>);
   withCredentials?: boolean;
+  /** 单片上传失败最大重试次数，默认 3 */
+  maxRetries?: number;
 }
 
 export interface UploadProgress {
@@ -26,6 +28,7 @@ export interface UseFileUploadReturn {
 const DEFAULTS: UseFileUploadOptions = {
   chunkSize: 2 * 1024 * 1024,
   withCredentials: false,
+  maxRetries: 3,
 };
 
 /**
@@ -79,19 +82,33 @@ export function useFileUpload(
         formData.append("chunks", String(totalChunks));
         formData.append("filename", targetFile.name);
 
-        const response = await fetch(action, {
-          method: "POST",
-          headers: resolveHeaders(),
-          body: formData,
-          signal: abortController.signal,
-          credentials: opts.withCredentials ? "include" : "same-origin",
-        });
+        // 单片重试逻辑
+        const maxRetries = opts.maxRetries!;
+        let lastError: Error | null = null;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+          try {
+            const response = await fetch(action, {
+              method: "POST",
+              headers: resolveHeaders(),
+              body: formData,
+              signal: abortController.signal,
+              credentials: opts.withCredentials ? "include" : "same-origin",
+            });
 
-        if (!response.ok) {
-          throw new Error(`上传失败: HTTP ${response.status}`);
+            if (!response.ok) {
+              throw new Error(`上传失败: HTTP ${response.status}`);
+            }
+
+            result = await response.json();
+            lastError = null;
+            break;
+          } catch (e) {
+            lastError = e as Error;
+            if ((e as Error).name === "AbortError") throw e;
+          }
         }
+        if (lastError) throw lastError;
 
-        result = await response.json();
         const loaded = Math.min(end, targetFile.size);
         progress.value = {
           loaded,
