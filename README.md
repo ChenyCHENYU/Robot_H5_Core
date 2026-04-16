@@ -16,12 +16,15 @@ pnpm add @robot/h5-core
 // main.ts
 import { createApp } from "vue";
 import { defineAppConfig } from "@robot/h5-core";
+import App from "./App.vue";
 
 const app = createApp(App);
 
 defineAppConfig(app, {
   bridge: { platform: "auto" },
+  upload: { action: "/api/file/upload", headers: () => ({ Authorization: `Bearer ${getToken()}` }) },
   image: { maxSize: 1024, quality: 0.8 },
+  location: { coordType: "gcj02", timeout: 10000 },
 });
 
 app.mount("#app");
@@ -29,71 +32,112 @@ app.mount("#app");
 
 ```vue
 <script setup>
-import { useCamera } from "@robot/h5-core/hooks";
+import { useCamera, useLocation } from "@robot/h5-core/hooks";
+
 const { photo, capture } = useCamera();
+const { position, getCurrentPosition } = useLocation();
 </script>
 ```
 
-## 功能一览
+---
 
-### Hooks（14 个）
+## 功能导航
+
+### Hooks（14 个组合函数）
 
 | Hook | 说明 | 文档 |
 |------|------|------|
 | `useCamera` | 拍照/相册 + 自动压缩 | [README](src/hooks/useCamera/README.md) |
-| `useLocation` | GPS 定位 + 持续监听 | [README](src/hooks/useLocation/README.md) |
+| `useLocation` | GPS 单次/持续定位 | [README](src/hooks/useLocation/README.md) |
 | `useQrScanner` | 二维码/条形码扫描 | [README](src/hooks/useQrScanner/README.md) |
 | `useNfc` | NFC 读写 | [README](src/hooks/useNfc/README.md) |
-| `useFileUpload` | 分片上传 + 进度 | [README](src/hooks/useFileUpload/README.md) |
-| `useFilePreview` | 文件预览 | [README](src/hooks/useFilePreview/README.md) |
-| `useSignature` | 手写签名 | [README](src/hooks/useSignature/README.md) |
-| `useAudioRecorder` | 录音 | [README](src/hooks/useAudioRecorder/README.md) |
-| `useVideoRecorder` | 视频录制 | [README](src/hooks/useVideoRecorder/README.md) |
-| `useBluetooth` | 蓝牙连接 | [README](src/hooks/useBluetooth/README.md) |
-| `useOfflineStorage` | 离线存储 + 同步 | [README](src/hooks/useOfflineStorage/README.md) |
-| `usePushNotification` | 推送消息 | [README](src/hooks/usePushNotification/README.md) |
-| `useWatermark` | 拍照水印 + 防截屏 | [README](src/hooks/useWatermark/README.md) |
-| `usePermission` | 系统权限 | [README](src/hooks/usePermission/README.md) |
+| `useFileUpload` | 分片上传 + 进度条 | [README](src/hooks/useFileUpload/README.md) |
+| `useFilePreview` | PDF/Office/图片预览 | [README](src/hooks/useFilePreview/README.md) |
+| `useSignature` | Canvas 手写签名 | [README](src/hooks/useSignature/README.md) |
+| `useAudioRecorder` | 录音 + 暂停恢复 | [README](src/hooks/useAudioRecorder/README.md) |
+| `useVideoRecorder` | 视频录制 + 实时预览 | [README](src/hooks/useVideoRecorder/README.md) |
+| `useBluetooth` | 蓝牙设备连接 | [README](src/hooks/useBluetooth/README.md) |
+| `useOfflineStorage` | IndexedDB 离线存储 | [README](src/hooks/useOfflineStorage/README.md) |
+| `usePushNotification` | 推送通知 | [README](src/hooks/usePushNotification/README.md) |
+| `useWatermark` | 图片水印 | [README](src/hooks/useWatermark/README.md) |
+| `usePermission` | 系统权限查询/请求 | [README](src/hooks/usePermission/README.md) |
 
-### Utils 工具
+### Bridge 适配器
+
+| 适配器 | 环境 | 状态 |
+|--------|------|------|
+| `BrowserBridge` | 浏览器降级 | ✅ 已实现 |
+| `NativeBridge` | APP WebView | 🔧 桩实现 |
+| `DingtalkBridge` | 钉钉 | 🔧 桩实现 |
+| `WechatBridge` | 微信/企微 | 🔧 桩实现 |
+
+### Utils 工具函数
 
 | 模块 | 函数 |
 |------|------|
-| `image` | `compressImage` `fileToBase64` `base64ToBlob` |
-| `coord` | `gcj02ToWgs84` `wgs84ToGcj02` |
-| `device` | `getDeviceInfo` `isAndroid` `isIOS` |
-| `file` | `getFileType` `formatFileSize` |
-| `validate` | `isPhone` `isIdCard` `isEmail` `isCreditCode` |
-| `format` | `formatDate` `formatMoney` |
+| `image` | `compressImage`, `fileToBase64`, `base64ToBlob` |
+| `coord` | `gcj02ToWgs84`, `wgs84ToGcj02` |
+| `device` | `getDeviceInfo`, `isAndroid`, `isIOS` |
+| `file` | `getFileType`, `formatFileSize` |
+| `validate` | `isPhone`, `isIdCard`, `isEmail`, `isCreditCode` |
+| `format` | `formatDate`, `formatMoney` |
+
+---
 
 ## 架构
 
 ```
-App
- └─ defineAppConfig(app, config)        ← 全局配置
-     └─ provide(BRIDGE_KEY, bridge)     ← Bridge 注入
-         └─ useXxx()                    ← Hook 内 inject 使用
-             ├─ Bridge 适配器调用
-             ├─ before/after 扩展
-             └─ 浏览器降级
+业务项目（薄）── defineAppConfig + useXxx ──┐
+                                             │
+@robot/h5-core（厚）                         ▼
+├── hooks/     14 个组合函数（封装全部逻辑）
+├── bridge/    4 个适配器（Native/钉钉/微信/浏览器）
+├── config/    配置驱动（provide/inject）
+├── utils/     纯函数工具（零依赖）
+└── types/     共享类型定义
 ```
 
-**Bridge 适配器**：Browser（降级）/ Native（APP WebView）/ Dingtalk / Wechat
+依赖规则（单向无环）：`Hooks → Bridge + Utils + Config`，`Bridge → Types`，`Utils → 零依赖`
 
-**Hook 扩展**：`extendHook('useCamera', { before, after })` 可在任意 Hook 执行前后注入逻辑。
+---
+
+## 项目侧扩展
+
+```ts
+// 注册自定义 Bridge 适配器
+import { registerAdapter } from "@robot/h5-core";
+registerAdapter("my-native", myBridgeAdapter);
+
+// Hook 行为增强
+import { extendHook } from "@robot/h5-core";
+extendHook("useCamera", {
+  after: async (file) => { await uploadToOss(file); return file; },
+});
+```
+
+---
 
 ## 开发
 
 ```bash
-pnpm install      # 安装依赖
-pnpm test         # 运行测试（120 个用例）
-pnpm build        # 构建
+pnpm install          # 安装依赖
+pnpm test             # 运行测试（watch 模式）
+pnpm test:run         # 运行测试（单次）
+pnpm run lint         # ESLint 检查 + 修复
+pnpm run typecheck    # TypeScript 类型检查
+pnpm run build        # 构建库
+pnpm run cz           # 规范化提交
 ```
 
-## 测试
+---
 
-覆盖 20 个测试文件、120 个测试用例，包括：
-- 全部 14 个 Hook 单元测试
-- Bridge 检测与注册表测试
-- 配置系统测试
-- 所有工具函数测试
+## 文档
+
+- [架构设计](docs/DESIGN.md) — 三层模型、配置驱动、扩展机制
+- [功能清单](docs/CHECKLIST.md) — 实现进度
+- [需求映射](docs/REQUIREMENTS.md) — 业务需求 → Hook 映射
+- [后续规划](docs/ROADMAP.md) — 版本计划
+
+## 许可证
+
+UNLICENSED — 企业内部使用
