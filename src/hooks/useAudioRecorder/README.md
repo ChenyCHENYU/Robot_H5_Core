@@ -1,58 +1,52 @@
 # useAudioRecorder
 
-浏览器录音 + 暂停/恢复 + 最大时长限制。
+录音 Hook — 基于 MediaRecorder API，支持暂停/恢复。
 
-## 引入
+## 用法
 
 ```ts
 import { useAudioRecorder } from "@robot/h5-core/hooks";
+
+const { isRecording, isPaused, duration, error, start, stop, pause, resume } = useAudioRecorder();
+
+await start();
+// 录音中...
+pause();
+resume();
+const blob = await stop();
+// blob = Blob { type: 'audio/webm;codecs=opus' }
 ```
 
-## 基本用法
+## API
 
-```vue
-<script setup lang="ts">
-const { audioBlob, duration, recording, error, start, stop, pause, resume } = useAudioRecorder();
-</script>
-
-<template>
-  <p>时长: {{ Math.round(duration / 1000) }}s</p>
-  <button v-if="!recording" @click="start()">开始录音</button>
-  <button v-else @click="stop()">停止</button>
-  <button v-if="recording" @click="pause">暂停</button>
-  <audio v-if="audioBlob" :src="URL.createObjectURL(audioBlob)" controls />
-</template>
-```
-
-## 配置项
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `sampleRate` | `number` | `44100` | 采样率 |
-| `mimeType` | `string` | 自动检测 | 录音格式 |
-| `maxDuration` | `number` | `0` | 最大时长(ms)，0=不限 |
-
-## 返回值
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `audioBlob` | `Ref<Blob \| null>` | 录音结果 |
-| `duration` | `Ref<number>` | 已录制时长(ms) |
-| `recording` | `Ref<boolean>` | 是否正在录音 |
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `isRecording` | `Ref<boolean>` | 是否在录音 |
+| `isPaused` | `Ref<boolean>` | 是否已暂停 |
+| `duration` | `Ref<number>` | 已录制时长（ms） |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `start` | `(options?) => Promise<boolean>` | 开始录音 |
-| `stop` | `() => Promise<Blob \| null>` | 停止并返回结果 |
-| `pause` | `() => void` | 暂停 |
-| `resume` | `() => void` | 恢复 |
+| `start()` | `() => Promise<void>` | 开始录音 |
+| `stop()` | `() => Promise<Blob \| null>` | 停止并返回音频 Blob |
+| `pause()` | `() => void` | 暂停录音 |
+| `resume()` | `() => void` | 恢复录音 |
 
-## 限制录音时长
+## Options
 
-```ts
-const { start, stop } = useAudioRecorder({ maxDuration: 60000 }); // 最长 60 秒
-```
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `mimeType` | `string` | 音频格式，默认自动选择最佳 |
+| `audioBitsPerSecond` | `number` | 音频比特率 |
 
-到达时限后自动调用 `stop()`。
+## 注意事项
 
-## 自动清理
+- **HTTPS 必需**：`getUserMedia` 要求安全上下文
+- **权限请求**：首次使用会弹出麦克风授权，可配合 `usePermission` 预请求
+- **组件卸载自动清理**：自动停止录音并释放 MediaStream
+- **格式兼容性**：优先使用 `audio/webm;codecs=opus`，不支持时降级到 `audio/ogg` 或 `audio/mp4`
+- **iOS Safari**：不支持 `audio/webm`，需要 `audio/mp4` 格式
 
-组件卸载时自动停止录音并释放麦克风。
+## 测试说明
+
+- 单元测试环境（happy-dom）**无 MediaRecorder API**，仅能测试初始状态
+- **必须在真实浏览器中测试录音功能**（推荐 Chrome DevTools + Playwright）
+- 建议通过 E2E 测试验证：录音→暂停→恢复→停止→播放 完整流程

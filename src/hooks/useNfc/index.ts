@@ -1,12 +1,6 @@
-import { ref, type Ref, onUnmounted } from "vue";
-import { useBridge } from "../../bridge";
+import { ref, type Ref } from "vue";
+import { useBridge, type NFCData } from "../../bridge";
 import { runBeforeExtensions, runAfterExtensions } from "../extend";
-import type { NFCData } from "../../bridge";
-
-export interface UseNfcOptions {
-  /** 读取超时(ms) */
-  timeout?: number;
-}
 
 export interface UseNfcReturn {
   data: Ref<NFCData | null>;
@@ -14,15 +8,13 @@ export interface UseNfcReturn {
   error: Ref<Error | null>;
   read: () => Promise<NFCData | null>;
   write: (data: NFCData) => Promise<boolean>;
-  clear: () => void;
 }
 
-const DEFAULTS: UseNfcOptions = {
-  timeout: 10000,
-};
-
-export function useNfc(options?: UseNfcOptions): UseNfcReturn {
-  const opts = { ...DEFAULTS, ...options };
+/**
+ * NFC 读写 Hook
+ * 浏览器环境不支持，需通过 Native Bridge 实现
+ */
+export function useNfc(): UseNfcReturn {
   const bridge = useBridge();
 
   const data = ref<NFCData | null>(null);
@@ -32,13 +24,12 @@ export function useNfc(options?: UseNfcOptions): UseNfcReturn {
   async function read(): Promise<NFCData | null> {
     loading.value = true;
     error.value = null;
-
     try {
-      const args = await runBeforeExtensions("useNfc", [opts]);
-      const result = await bridge.nfc.read();
-      const processed = await runAfterExtensions("useNfc", result);
-      data.value = processed;
-      return processed;
+      await runBeforeExtensions("useNfc", []);
+      const nfcData = await bridge.nfc.read();
+      const result = await runAfterExtensions("useNfc", nfcData);
+      data.value = result;
+      return result;
     } catch (e) {
       error.value = e as Error;
       return null;
@@ -50,8 +41,8 @@ export function useNfc(options?: UseNfcOptions): UseNfcReturn {
   async function write(nfcData: NFCData): Promise<boolean> {
     loading.value = true;
     error.value = null;
-
     try {
+      await runBeforeExtensions("useNfc", [nfcData]);
       await bridge.nfc.write(nfcData);
       return true;
     } catch (e) {
@@ -62,10 +53,5 @@ export function useNfc(options?: UseNfcOptions): UseNfcReturn {
     }
   }
 
-  function clear() {
-    data.value = null;
-    error.value = null;
-  }
-
-  return { data, loading, error, read, write, clear };
+  return { data, loading, error, read, write };
 }

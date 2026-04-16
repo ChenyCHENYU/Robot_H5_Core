@@ -1,71 +1,68 @@
 # useVideoRecorder
 
-视频录制 + 实时预览 + 最大时长限制。
+视频录制 Hook — 基于 MediaRecorder API。
 
-## 引入
-
-```ts
-import { useVideoRecorder } from "@robot/h5-core/hooks";
-```
-
-## 基本用法
+## 用法
 
 ```vue
-<script setup lang="ts">
-import { ref } from "vue";
-
-const videoRef = ref<HTMLVideoElement>();
-const { videoBlob, videoUrl, duration, recording, error, getStream, start, stop, clear } = useVideoRecorder();
-
-async function init() {
-  const stream = await getStream();
-  if (stream && videoRef.value) {
-    videoRef.value.srcObject = stream;
-  }
-}
-</script>
-
 <template>
   <video ref="videoRef" autoplay muted />
-  <button @click="init">初始化摄像头</button>
-  <button v-if="!recording" @click="start()">开始录制</button>
-  <button v-else @click="stop()">停止</button>
-  <p>{{ Math.round(duration / 1000) }}s</p>
-  <video v-if="videoUrl" :src="videoUrl" controls />
+  <button @click="startRecord">录制</button>
+  <button @click="stopRecord">停止</button>
 </template>
+
+<script setup>
+import { ref, watch } from "vue";
+import { useVideoRecorder } from "@robot/h5-core/hooks";
+
+const videoRef = ref();
+const { isRecording, duration, stream, error, start, stop } = useVideoRecorder({
+  facingMode: "environment", // 后置摄像头
+  audio: true,
+});
+
+// 将 stream 绑定到 video 元素实时预览
+watch(stream, (s) => {
+  if (videoRef.value && s) videoRef.value.srcObject = s;
+});
+
+async function startRecord() { await start(); }
+async function stopRecord() {
+  const blob = await stop();
+  // blob = Blob { type: 'video/webm;codecs=vp9,opus' }
+}
+</script>
 ```
 
-## 配置项
+## API
+
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `isRecording` | `Ref<boolean>` | 是否在录制 |
+| `duration` | `Ref<number>` | 已录制时长（ms） |
+| `stream` | `Ref<MediaStream \| null>` | 视频流（可绑定到 video 元素） |
+| `error` | `Ref<Error \| null>` | 错误信息 |
+| `start()` | `() => Promise<void>` | 开始录制 |
+| `stop()` | `() => Promise<Blob \| null>` | 停止并返回视频 Blob |
+
+## Options
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `width` | `number` | `1280` | 视频宽度 |
-| `height` | `number` | `720` | 视频高度 |
-| `facingMode` | `'user' \| 'environment'` | `'environment'` | 前置/后置 |
-| `mimeType` | `string` | 自动检测 | 视频格式 |
-| `maxDuration` | `number` | `0` | 最大时长(ms) |
-| `audio` | `boolean` | `true` | 是否录音 |
+| `facingMode` | `'user' \| 'environment'` | `'environment'` | 前置/后置摄像头 |
+| `audio` | `boolean` | `true` | 是否同时录制音频 |
+| `mimeType` | `string` | 自动选择 | 视频格式 |
+| `videoBitsPerSecond` | `number` | 默认 | 视频比特率 |
 
-## 返回值
+## 注意事项
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `videoBlob` | `Ref<Blob \| null>` | 录制结果 |
-| `videoUrl` | `Ref<string>` | 预览 URL |
-| `duration` | `Ref<number>` | 已录制时长(ms) |
-| `recording` | `Ref<boolean>` | 是否正在录制 |
-| `error` | `Ref<Error \| null>` | 错误信息 |
-| `getStream` | `(options?) => Promise<MediaStream \| null>` | 获取媒体流 |
-| `start` | `() => Promise<boolean>` | 开始录制（需先 getStream） |
-| `stop` | `() => Promise<Blob \| null>` | 停止录制 |
-| `clear` | `() => void` | 清除录制结果 |
+- **HTTPS 必需**：`getUserMedia` 要求安全上下文
+- **iOS Safari**：不支持 `video/webm`，仅支持 `video/mp4` 或需要 MediaRecorder polyfill
+- **stream 绑定**：返回的 `stream` 可直接赋给 `<video>` 的 `srcObject` 实现实时预览
+- **组件卸载自动清理**：自动停止录制并释放摄像头
 
-## 使用流程
+## 测试说明
 
-1. `getStream()` → 获取摄像头，绑定到 `<video>` 实时预览
-2. `start()` → 开始录制
-3. `stop()` → 停止并获取 Blob
-
-## 自动清理
-
-组件卸载时自动停止录制、释放摄像头、回收 ObjectURL。
+- 单元测试环境（happy-dom）**无 MediaRecorder / getUserMedia API**，仅能测试初始状态
+- **必须在真实浏览器中测试录制功能**
+- 建议通过 Playwright 或真机验证：预览→录制→停止→回放 完整流程

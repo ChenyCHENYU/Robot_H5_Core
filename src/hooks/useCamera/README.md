@@ -1,68 +1,62 @@
 # useCamera
 
-拍照/相册选图 + 自动压缩。
+拍照/相册 + 自动压缩 Hook。
 
-## 引入
+## 用法
 
 ```ts
 import { useCamera } from "@robot/h5-core/hooks";
+
+const { photo, preview, loading, error, capture, clear } = useCamera({
+  source: "both",   // 'camera' | 'album' | 'both'
+  maxSize: 1024,     // 压缩目标 KB
+  quality: 0.8,      // 0-1
+});
+
+// 拍照
+await capture();
+// capture({ source: 'camera' }) 可覆盖默认参数
 ```
 
-## 基本用法
+## API
 
-```vue
-<script setup lang="ts">
-const { photo, preview, loading, error, capture, clear } = useCamera();
-</script>
-
-<template>
-  <button @click="capture()" :disabled="loading">拍照</button>
-  <img v-if="preview" :src="preview" />
-  <button v-if="photo" @click="clear">清除</button>
-</template>
-```
-
-## 配置项
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `source` | `'camera' \| 'album' \| 'both'` | `'both'` | 图片来源 |
-| `maxSize` | `number` | `1024` | 最大文件大小(KB)，超过自动压缩 |
-| `quality` | `number` | `0.8` | 压缩质量 0-1 |
-| `watermark` | `boolean` | `false` | 是否添加水印 |
-| `watermarkText` | `string` | — | 水印文字 |
-
-## 返回值
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `photo` | `Ref<File \| null>` | 拍照结果文件 |
-| `preview` | `Ref<string>` | 预览 URL (ObjectURL) |
-| `loading` | `Ref<boolean>` | 加载状态 |
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `photo` | `Ref<File \| null>` | 拍照/选图结果 |
+| `preview` | `Ref<string>` | 预览 URL（ObjectURL） |
+| `loading` | `Ref<boolean>` | 操作中 |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `capture` | `(options?) => Promise<File \| null>` | 执行拍照，支持临时覆盖配置 |
-| `clear` | `() => void` | 清除照片和预览 |
+| `capture()` | `(options?) => Promise<File \| null>` | 执行拍照 |
+| `clear()` | `() => void` | 清除照片和预览 |
 
-## 全局配置
+## 配置
 
-通过 `defineAppConfig` 设置全局图片参数，所有 `useCamera` 实例共享：
+通过 `defineAppConfig` 的 `image` 字段全局配置：
 
 ```ts
 defineAppConfig(app, {
-  image: { maxSize: 500, quality: 0.7, maxWidth: 1280 },
+  image: { maxSize: 500, quality: 0.7, maxWidth: 1920 },
 });
 ```
 
 ## 扩展
 
 ```ts
-import { extendHook } from "@robot/h5-core";
-
 extendHook("useCamera", {
   after: async (file, ctx) => {
-    // 拍照后自动上传到 OSS
     ctx.meta.ossUrl = await uploadToOss(file);
     return file;
   },
 });
 ```
+
+## 注意事项
+
+- **内存管理**：连续拍照时自动释放旧的 ObjectURL，组件卸载时自动清理
+- **压缩**：基于 `OffscreenCanvas + createImageBitmap`，如文件已小于 maxSize 则跳过
+- **浏览器降级**：通过 `<input type="file">` 实现，移动端会自动弹出相机/相册选择
+
+## 测试说明
+
+- 单元测试通过 Mock Bridge 覆盖核心流程
+- **真机测试建议**：不同手机的相机分辨率和 EXIF 方向可能影响压缩结果，建议在 iOS Safari 和 Android Chrome 上验证

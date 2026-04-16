@@ -1,55 +1,53 @@
 # useLocation
 
-GPS 单次定位 + 持续监听。
+GPS 单次/持续定位 Hook，自动坐标系转换。
 
-## 引入
+## 用法
 
 ```ts
 import { useLocation } from "@robot/h5-core/hooks";
+
+const { position, loading, error, getCurrentPosition, watchPosition, stopWatch } = useLocation({
+  timeout: 10000,
+  enableHighAccuracy: true,
+});
+
+// 单次定位
+const pos = await getCurrentPosition();
+
+// 持续定位
+watchPosition();
+// 停止监听
+stopWatch();
 ```
 
-## 基本用法
+## API
 
-```vue
-<script setup lang="ts">
-const { position, loading, error, getCurrentPosition, watchPosition, stopWatch } = useLocation();
-</script>
-
-<template>
-  <button @click="getCurrentPosition">获取位置</button>
-  <p v-if="position">{{ position.longitude }}, {{ position.latitude }}</p>
-  <button @click="watchPosition">持续定位</button>
-  <button @click="stopWatch">停止</button>
-</template>
-```
-
-## 配置项
-
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `timeout` | `number` | `10000` | 定位超时(ms) |
-| `enableHighAccuracy` | `boolean` | — | 是否启用高精度 |
-| `coordType` | `'gcj02' \| 'wgs84'` | `'gcj02'` | 坐标系 |
-
-## 返回值
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
 | `position` | `Ref<Coordinates \| null>` | 当前坐标 |
-| `loading` | `Ref<boolean>` | 加载状态 |
+| `loading` | `Ref<boolean>` | 定位中 |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `getCurrentPosition` | `() => Promise<Coordinates \| null>` | 单次定位 |
-| `watchPosition` | `() => void` | 开始持续监听 |
-| `stopWatch` | `() => void` | 停止监听 |
+| `getCurrentPosition()` | `() => Promise<Coordinates \| null>` | 单次定位 |
+| `watchPosition()` | `() => void` | 开始持续定位 |
+| `stopWatch()` | `() => void` | 停止持续定位 |
 
-## 全局配置
+## 配置
 
 ```ts
 defineAppConfig(app, {
-  location: { coordType: "gcj02", timeout: 15000 },
+  location: { coordType: "gcj02", timeout: 10000 },
 });
 ```
 
-## 自动清理
+## 注意事项
 
-组件卸载时自动停止监听，无需手动调用 `stopWatch`。
+- **HTTPS 必需**：Geolocation API 要求 HTTPS（localhost 除外）
+- **坐标系**：中国大陆使用 GCJ-02，海外使用 WGS-84，可用 `coord.ts` 工具转换
+- **组件卸载时自动停止** watchPosition，无需手动清理
+- **iOS Safari**：首次定位需要用户授权，可配合 `usePermission` 预请求
+
+## 测试说明
+
+- 单元测试通过 Mock Bridge 覆盖核心流程
+- **真机测试建议**：GPS 定位精度受设备和环境影响，室内可能定位失败或精度低，建议在室外环境验证 `enableHighAccuracy` 模式

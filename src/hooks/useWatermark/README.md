@@ -1,78 +1,50 @@
 # useWatermark
 
-拍照水印（时间+地点+人员） + 页面防截屏水印。
+图片水印 Hook — 在图片上叠加文字水印（时间/地点/人员等）。
 
-## 引入
+## 用法
 
 ```ts
 import { useWatermark } from "@robot/h5-core/hooks";
-```
 
-## 基本用法 — 图片水印
-
-```vue
-<script setup lang="ts">
-const { addWatermark, loading } = useWatermark({
-  texts: ["张三", "巡检员"],
-  showTime: true,
+const { loading, error, addWatermark } = useWatermark({
+  text: "张三 · 2024-01-01 · 生产车间",
+  fontSize: 16,
+  fontColor: "#ffffff",
+  position: "bottomRight",
+  opacity: 0.8,
 });
 
-async function onPhoto(file: File) {
-  const watermarked = await addWatermark(file);
-  // 上传 watermarked...
-}
-</script>
+const watermarked = await addWatermark(photoFile);
+// watermarked = File（含水印的 JPEG）
 ```
 
-## 基本用法 — 页面防截屏水印
+## API
 
-```vue
-<script setup lang="ts">
-import { ref, onMounted } from "vue";
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `loading` | `Ref<boolean>` | 处理中 |
+| `error` | `Ref<Error \| null>` | 错误信息 |
+| `addWatermark()` | `(file: File, options?) => Promise<File \| null>` | 添加水印 |
 
-const containerRef = ref<HTMLElement>();
-const { createPageWatermark } = useWatermark();
-
-onMounted(() => {
-  if (containerRef.value) {
-    createPageWatermark(containerRef.value, {
-      texts: ["张三 2025-01-01"],
-      showTime: false,
-    });
-  }
-});
-</script>
-
-<template>
-  <div ref="containerRef">
-    <!-- 页面内容 -->
-  </div>
-</template>
-```
-
-## 配置项
+## Options
 
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `texts` | `string[]` | `[]` | 水印文字（每行一条） |
-| `showTime` | `boolean` | `true` | 是否包含时间 |
-| `timeFormat` | `string` | `'YYYY-MM-DD HH:mm:ss'` | 时间格式 |
-| `showLocation` | `boolean` | `false` | 是否包含位置 |
-| `fontSize` | `number` | `14` | 字体大小(px) |
-| `fontColor` | `string` | `'#ffffff'` | 字体颜色 |
-| `position` | `string` | `'bottom-left'` | 文字位置 |
-| `backgroundColor` | `string` | `'rgba(0,0,0,0.5)'` | 文字背景色 |
-| `padding` | `number` | `10` | 内边距 |
+| `text` | `string` | `''` | 水印文字 |
+| `fontSize` | `number` | `16` | 字号 |
+| `fontColor` | `string` | `#ffffff` | 字色 |
+| `position` | `string` | `'bottomRight'` | 位置：topLeft/topRight/bottomLeft/bottomRight/center |
+| `opacity` | `number` | `0.8` | 透明度 0-1 |
 
-## 返回值
+## 注意事项
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `loading` | `Ref<boolean>` | 加载状态 |
-| `error` | `Ref<Error \| null>` | 错误信息 |
-| `addWatermark` | `(file, options?) => Promise<File \| null>` | 给图片加水印 |
-| `createPageWatermark` | `(el, options?) => () => void` | 创建页面水印层，返回清理函数 |
+- **字体加载**：Canvas 使用系统默认 sans-serif 字体，如需自定义字体建议等待 `document.fonts.ready`
+- **高 DPI**：在 Retina 屏幕上水印可能偏小，可根据 `devicePixelRatio` 调整 fontSize
+- **输出格式**：固定输出 JPEG 格式（quality=0.92），如需 PNG 可通过扩展实现
+- **配合 useCamera**：可先拍照再添加水印，适用于隐患随手拍、巡检拍照等场景
 
-## 防截屏
+## 测试说明
 
-`createPageWatermark` 创建的水印层使用 `MutationObserver` 监听 DOM 删除，被移除后自动恢复。
+- 单元测试通过 Mock Canvas API 验证核心逻辑
+- **字体渲染效果需要在真实浏览器中验证**（不同设备字体渲染可能有差异）

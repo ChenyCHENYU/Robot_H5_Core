@@ -3,6 +3,9 @@
  */
 export type PlatformType = "native" | "dingtalk" | "wechat" | "browser";
 
+/**
+ * 检测当前运行平台（钉钉/微信/原生/浏览器）
+ */
 export function detectPlatform(nativeUA?: string): PlatformType {
   if (typeof navigator === "undefined") return "browser";
 

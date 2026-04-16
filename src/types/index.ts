@@ -18,13 +18,15 @@ export type {
   UseCameraOptions,
   UseCameraReturn,
   UseAsyncReturn,
+  UseLocationOptions,
 } from "../hooks/types";
 export type { HookExtension, ExtensionContext } from "../hooks/extend";
 export type { DeviceInfo } from "../utils/device";
 export type { CompressOptions } from "../utils/image";
-export type { UseLocationOptions, UseLocationReturn } from "../hooks/useLocation";
+
+// Hook return types
 export type { UseQrScannerOptions, UseQrScannerReturn } from "../hooks/useQrScanner";
-export type { UseNfcOptions, UseNfcReturn } from "../hooks/useNfc";
+export type { UseNfcReturn } from "../hooks/useNfc";
 export type {
   UseFileUploadOptions,
   UseFileUploadReturn,
@@ -46,25 +48,17 @@ export type {
   UseVideoRecorderOptions,
   UseVideoRecorderReturn,
 } from "../hooks/useVideoRecorder";
-export type {
-  UseBluetoothOptions,
-  UseBluetoothReturn,
-} from "../hooks/useBluetooth";
+export type { UseBluetoothReturn } from "../hooks/useBluetooth";
 export type {
   UseOfflineStorageOptions,
   UseOfflineStorageReturn,
 } from "../hooks/useOfflineStorage";
-export type {
-  UsePushNotificationOptions,
-  UsePushNotificationReturn,
-} from "../hooks/usePushNotification";
+export type { UsePushNotificationReturn } from "../hooks/usePushNotification";
 export type {
   UseWatermarkOptions,
   UseWatermarkReturn,
 } from "../hooks/useWatermark";
 export type {
-  UsePermissionOptions,
   UsePermissionReturn,
   PermissionName,
-  PermissionStatus,
 } from "../hooks/usePermission";

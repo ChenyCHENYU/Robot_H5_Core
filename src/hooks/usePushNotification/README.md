@@ -1,64 +1,43 @@
 # usePushNotification
 
-统一推送消息注册与监听。
+统一推送通知 Hook — 通过 Bridge 对接原生推送通道。
 
-## 引入
+## 用法
 
 ```ts
 import { usePushNotification } from "@robot/h5-core/hooks";
-```
 
-## 基本用法
+const { messages, loading, error, register, onMessage, clearMessages } = usePushNotification();
 
-```vue
-<script setup lang="ts">
-const { lastMessage, messages, register, startListening, stopListening, clearMessages } =
-  usePushNotification();
+// 注册推送
+await register("device-token-xxx");
 
-onMounted(async () => {
-  await register("fcm-token-xxx");
-  startListening();
+// 监听消息
+onMessage((msg) => {
+  console.log(msg.title, msg.body);
 });
-</script>
-
-<template>
-  <p v-if="lastMessage">新消息: {{ lastMessage.title }}</p>
-  <ul>
-    <li v-for="msg in messages" :key="msg.timestamp">{{ msg.body }}</li>
-  </ul>
-</template>
 ```
 
-## 配置项
+## API
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `token` | `string` | — | 推送 token（可在 register 时传入） |
-
-## 返回值
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `lastMessage` | `Ref<PushMessage \| null>` | 最新消息 |
-| `messages` | `Ref<PushMessage[]>` | 所有已接收消息 |
-| `loading` | `Ref<boolean>` | 加载状态 |
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `messages` | `Ref<PushMessage[]>` | 已接收消息列表 |
+| `loading` | `Ref<boolean>` | 注册中 |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `register` | `(token?) => Promise<boolean>` | 注册推送 |
-| `startListening` | `() => void` | 开始监听 |
-| `stopListening` | `() => void` | 停止监听 |
-| `clearMessages` | `() => void` | 清空消息 |
+| `register()` | `(token: string) => Promise<boolean>` | 注册设备推送 |
+| `onMessage()` | `(callback) => void` | 注册消息回调 |
+| `clearMessages()` | `() => void` | 清空消息列表 |
 
-## PushMessage 类型
+## 注意事项
 
-```ts
-interface PushMessage {
-  title: string;
-  body: string;
-  data?: Record<string, any>;
-  timestamp: number;
-}
-```
+- **仅 Bridge 通道**：当前通过 Native/钉钉/微信 Bridge 实现推送注册和消息接收
+- **无 Service Worker**：当前版本不支持 Web Push，如需浏览器推送需自行实现
+- **组件卸载自动清理**：自动取消消息监听
+- **钉钉/微信**：推送通过各平台 SDK 通道实现，需在平台后台配置
 
-## 自动清理
+## 测试说明
 
-组件卸载时自动停止消息监听。
+- 单元测试通过 Mock Bridge 验证注册/消息回调/清空逻辑
+- **推送功能需要在真实 APP 环境中测试**（钉钉/微信/APP WebView）
+- 建议搭配后端推送服务进行端到端测试

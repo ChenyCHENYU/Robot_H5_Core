@@ -1,39 +1,21 @@
-import { ref, type Ref, onUnmounted } from "vue";
-import { useBridge } from "../../bridge";
+import { ref, type Ref } from "vue";
+import { useBridge, type BluetoothDeviceInfo } from "../../bridge";
 import { runBeforeExtensions, runAfterExtensions } from "../extend";
-import type { BluetoothDeviceInfo } from "../../bridge";
-
-export interface UseBluetoothOptions {
-  /** 自动重连 */
-  autoReconnect?: boolean;
-  /** 重连间隔(ms) */
-  reconnectInterval?: number;
-  /** 最大重连次数 */
-  maxReconnectAttempts?: number;
-}
 
 export interface UseBluetoothReturn {
   device: Ref<BluetoothDeviceInfo | null>;
   connected: Ref<boolean>;
   loading: Ref<boolean>;
   error: Ref<Error | null>;
-  connect: (
-    deviceId: string,
-    options?: Partial<UseBluetoothOptions>,
-  ) => Promise<boolean>;
+  connect: (deviceId: string) => Promise<BluetoothDeviceInfo | null>;
   disconnect: () => Promise<void>;
 }
 
-const DEFAULTS: UseBluetoothOptions = {
-  autoReconnect: false,
-  reconnectInterval: 3000,
-  maxReconnectAttempts: 3,
-};
-
-export function useBluetooth(
-  options?: UseBluetoothOptions,
-): UseBluetoothReturn {
-  const opts = { ...DEFAULTS, ...options };
+/**
+ * 蓝牙设备连接 Hook
+ * Web Bluetooth 仅 Chrome 系支持，iOS 完全不可用，建议配合 Native Bridge
+ */
+export function useBluetooth(): UseBluetoothReturn {
   const bridge = useBridge();
 
   const device = ref<BluetoothDeviceInfo | null>(null);
@@ -41,70 +23,35 @@ export function useBluetooth(
   const loading = ref(false);
   const error = ref<Error | null>(null);
 
-  let reconnectAttempts = 0;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let currentDeviceId = "";
-
   async function connect(
     deviceId: string,
-    overrides?: Partial<UseBluetoothOptions>,
-  ): Promise<boolean> {
-    const merged = { ...opts, ...overrides };
+  ): Promise<BluetoothDeviceInfo | null> {
     loading.value = true;
     error.value = null;
-    currentDeviceId = deviceId;
-    reconnectAttempts = 0;
-
     try {
-      const args = await runBeforeExtensions("useBluetooth", [
-        deviceId,
-        merged,
-      ]);
-      const info = await bridge.bluetooth.connect(args[0]);
-      const processed = await runAfterExtensions("useBluetooth", info);
-      device.value = processed;
+      await runBeforeExtensions("useBluetooth", [deviceId]);
+      const info = await bridge.bluetooth.connect(deviceId);
+      const result = await runAfterExtensions("useBluetooth", info);
+      device.value = result;
       connected.value = true;
-      return true;
+      return result;
     } catch (e) {
       error.value = e as Error;
-      connected.value = false;
-
-      // 自动重连
-      if (
-        merged.autoReconnect &&
-        reconnectAttempts < merged.maxReconnectAttempts!
-      ) {
-        reconnectAttempts++;
-        reconnectTimer = setTimeout(
-          () => connect(currentDeviceId, merged),
-          merged.reconnectInterval,
-        );
-      }
-
-      return false;
+      return null;
     } finally {
       loading.value = false;
     }
   }
 
   async function disconnect(): Promise<void> {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-
     try {
       await bridge.bluetooth.disconnect();
-    } finally {
       device.value = null;
       connected.value = false;
+    } catch (e) {
+      error.value = e as Error;
     }
   }
-
-  onUnmounted(() => {
-    if (reconnectTimer) clearTimeout(reconnectTimer);
-    if (connected.value) {
-      bridge.bluetooth.disconnect().catch(() => {});
-    }
-  });
 
   return { device, connected, loading, error, connect, disconnect };
 }

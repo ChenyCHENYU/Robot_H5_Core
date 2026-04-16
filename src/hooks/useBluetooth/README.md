@@ -1,58 +1,43 @@
 # useBluetooth
 
-蓝牙设备连接 + 自动重连。
+蓝牙设备连接 Hook。
 
-## 引入
+## 用法
 
 ```ts
 import { useBluetooth } from "@robot/h5-core/hooks";
-```
 
-## 基本用法
-
-```vue
-<script setup lang="ts">
 const { device, connected, loading, error, connect, disconnect } = useBluetooth();
-</script>
 
-<template>
-  <button @click="connect('device-id')" :disabled="loading">连接蓝牙</button>
-  <p v-if="connected">已连接: {{ device?.name }}</p>
-  <button v-if="connected" @click="disconnect">断开</button>
-</template>
+const info = await connect("device-001");
+// info = { id: 'device-001', name: 'My Device', connected: true }
+
+await disconnect();
 ```
 
-## 配置项
+## API
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `autoReconnect` | `boolean` | `false` | 自动重连 |
-| `reconnectInterval` | `number` | `3000` | 重连间隔(ms) |
-| `maxReconnectAttempts` | `number` | `3` | 最大重连次数 |
-
-## 返回值
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `device` | `Ref<BluetoothDeviceInfo \| null>` | 设备信息 |
+| 返回值 | 类型 | 说明 |
+|--------|------|------|
+| `device` | `Ref<BluetoothDeviceInfo \| null>` | 已连接设备信息 |
 | `connected` | `Ref<boolean>` | 连接状态 |
-| `loading` | `Ref<boolean>` | 加载状态 |
+| `loading` | `Ref<boolean>` | 操作中 |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `connect` | `(deviceId, options?) => Promise<boolean>` | 连接设备 |
-| `disconnect` | `() => Promise<void>` | 断开连接 |
+| `connect()` | `(deviceId: string) => Promise<BluetoothDeviceInfo \| null>` | 连接设备 |
+| `disconnect()` | `() => Promise<void>` | 断开连接 |
 
-## 自动重连
+## 注意事项
 
-```ts
-const { connect } = useBluetooth({
-  autoReconnect: true,
-  reconnectInterval: 5000,
-  maxReconnectAttempts: 5,
-});
-```
+- **Web Bluetooth 兼容性极差**：
+  - ✅ Chrome Desktop / Chrome Android
+  - ❌ **iOS 完全不支持**（Safari、Chrome iOS 均不支持）
+  - ❌ Firefox 不支持
+- **必须通过 Native Bridge 实现跨平台蓝牙功能**
+- **BrowserBridge 降级**：直接抛出"不支持"错误
+- 实际场景（如设备巡检中的蓝牙打印机）建议使用 APP 环境
 
-连接失败时自动尝试重连，达到最大次数后停止。
+## 测试说明
 
-## 自动清理
-
-组件卸载时自动断开连接并取消重连定时器。
+- 单元测试通过 Mock Bridge 验证连接/断开/错误处理
+- **蓝牙无法在模拟器中测试**，必须使用真实设备和蓝牙外设
+- 建议使用 Android 真机 + BLE 设备进行集成测试

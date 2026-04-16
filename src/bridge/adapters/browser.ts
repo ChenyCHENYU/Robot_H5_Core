@@ -4,7 +4,6 @@ import type {
   Coordinates,
   NFCData,
   BluetoothDeviceInfo,
-  PushMessage,
   ScanOptions,
 } from "../types";
 
@@ -42,6 +41,7 @@ const browserBridge: BridgeAdapter = {
   },
 
   scanner: {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     scan(_options?: ScanOptions): Promise<string> {
       // 浏览器无原生扫码能力，需接入第三方库（如 jsQR）
       return Promise.reject(

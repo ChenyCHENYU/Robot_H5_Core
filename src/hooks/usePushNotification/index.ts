@@ -1,64 +1,34 @@
 import { ref, type Ref, onUnmounted } from "vue";
-import { useBridge } from "../../bridge";
-import { runBeforeExtensions, runAfterExtensions } from "../extend";
-import type { PushMessage } from "../../bridge";
-
-export interface UsePushNotificationOptions {
-  /** 推送 token（如 FCM token） */
-  token?: string;
-}
+import { useBridge, type PushMessage } from "../../bridge";
+import { runBeforeExtensions } from "../extend";
 
 export interface UsePushNotificationReturn {
-  /** 最新消息 */
-  lastMessage: Ref<PushMessage | null>;
-  /** 所有已接收消息 */
   messages: Ref<PushMessage[]>;
   loading: Ref<boolean>;
   error: Ref<Error | null>;
-  /** 注册推送 */
-  register: (token?: string) => Promise<boolean>;
-  /** 开始监听推送消息 */
-  startListening: () => void;
-  /** 停止监听 */
-  stopListening: () => void;
-  /** 清空消息列表 */
+  register: (token: string) => Promise<boolean>;
+  onMessage: (callback: (msg: PushMessage) => void) => void;
   clearMessages: () => void;
 }
 
-export function usePushNotification(
-  options?: UsePushNotificationOptions,
-): UsePushNotificationReturn {
-  const opts = { ...options };
+/**
+ * 推送通知 Hook — 统一推送消息接收
+ * 通过 Bridge 对接原生推送通道（钉钉/微信/APP）
+ */
+export function usePushNotification(): UsePushNotificationReturn {
   const bridge = useBridge();
 
-  const lastMessage = ref<PushMessage | null>(null);
   const messages = ref<PushMessage[]>([]);
   const loading = ref(false);
   const error = ref<Error | null>(null);
+  let unsubscribe: (() => void) | null = null;
 
-  let stopFn: (() => void) | null = null;
-
-  async function register(token?: string): Promise<boolean> {
-    const targetToken = token ?? opts.token;
-    if (!targetToken) {
-      error.value = new Error(
-        "[h5-core] usePushNotification: 未提供推送 token",
-      );
-      return false;
-    }
-
+  async function register(token: string): Promise<boolean> {
     loading.value = true;
     error.value = null;
-
     try {
-      const args = await runBeforeExtensions("usePushNotification", [
-        targetToken,
-      ]);
-      await bridge.notification.register(args[0]);
-      await runAfterExtensions("usePushNotification", {
-        action: "register",
-        token: args[0],
-      });
+      await runBeforeExtensions("usePushNotification", [token]);
+      await bridge.notification.register(token);
       return true;
     } catch (e) {
       error.value = e as Error;
@@ -68,33 +38,20 @@ export function usePushNotification(
     }
   }
 
-  function startListening() {
-    stopFn = bridge.notification.onMessage((msg) => {
-      lastMessage.value = msg;
-      messages.value = [...messages.value, msg];
+  function onMessage(callback: (msg: PushMessage) => void) {
+    unsubscribe = bridge.notification.onMessage((msg) => {
+      messages.value.push(msg);
+      callback(msg);
     });
-  }
-
-  function stopListening() {
-    stopFn?.();
-    stopFn = null;
   }
 
   function clearMessages() {
     messages.value = [];
-    lastMessage.value = null;
   }
 
-  onUnmounted(stopListening);
+  onUnmounted(() => {
+    unsubscribe?.();
+  });
 
-  return {
-    lastMessage,
-    messages,
-    loading,
-    error,
-    register,
-    startListening,
-    stopListening,
-    clearMessages,
-  };
+  return { messages, loading, error, register, onMessage, clearMessages };
 }

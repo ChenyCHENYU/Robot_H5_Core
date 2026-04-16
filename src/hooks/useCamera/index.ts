@@ -12,6 +12,9 @@ const DEFAULTS: UseCameraOptions = {
   watermark: false,
 };
 
+/**
+ * 拍照/相册 + 自动压缩 Hook
+ */
 export function useCamera(
   options?: Partial<UseCameraOptions>,
 ): UseCameraReturn {
@@ -43,6 +46,7 @@ export function useCamera(
 
       const result = await runAfterExtensions("useCamera", compressed);
       photo.value = result;
+      if (preview.value) URL.revokeObjectURL(preview.value);
       preview.value = URL.createObjectURL(result);
       return result;
     } catch (e) {

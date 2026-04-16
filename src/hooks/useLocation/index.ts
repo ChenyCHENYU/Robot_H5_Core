@@ -1,13 +1,11 @@
 import { ref, type Ref, onUnmounted } from "vue";
 import { useAppConfig } from "../../config";
-import { useBridge } from "../../bridge";
+import { useBridge, type Coordinates } from "../../bridge";
 import { runBeforeExtensions, runAfterExtensions } from "../extend";
-import type { Coordinates } from "../../bridge";
 
 export interface UseLocationOptions {
   timeout?: number;
   enableHighAccuracy?: boolean;
-  coordType?: "gcj02" | "wgs84";
 }
 
 export interface UseLocationReturn {
@@ -19,6 +17,9 @@ export interface UseLocationReturn {
   stopWatch: () => void;
 }
 
+/**
+ * GPS 定位 Hook — 单次/持续定位 + 自动清理
+ */
 export function useLocation(options?: UseLocationOptions): UseLocationReturn {
   const config = useAppConfig();
   const opts = { ...config.location, ...options };
@@ -33,7 +34,7 @@ export function useLocation(options?: UseLocationOptions): UseLocationReturn {
     loading.value = true;
     error.value = null;
     try {
-      const args = await runBeforeExtensions("useLocation", [opts]);
+      await runBeforeExtensions("useLocation", [opts]);
       const pos = await bridge.location.getCurrent();
       const result = await runAfterExtensions("useLocation", pos);
       position.value = result;

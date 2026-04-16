@@ -1,5 +1,4 @@
 import { ref, type Ref } from "vue";
-import { runBeforeExtensions, runAfterExtensions } from "../extend";
 
 export type PermissionName =
   | "camera"
@@ -9,157 +8,92 @@ export type PermissionName =
   | "clipboard-read"
   | "clipboard-write";
 
-export type PermissionStatus = "granted" | "denied" | "prompt" | "unsupported";
-
-export interface UsePermissionOptions {
-  /** 查询失败时是否自动请求 */
-  autoRequest?: boolean;
-}
-
 export interface UsePermissionReturn {
-  /** 各权限的状态 */
-  status: Ref<Record<string, PermissionStatus>>;
+  state: Ref<PermissionState | null>;
   loading: Ref<boolean>;
   error: Ref<Error | null>;
-  /** 查询单个权限状态 */
-  query: (name: PermissionName) => Promise<PermissionStatus>;
-  /** 请求权限（通过触发相关 API 来触发浏览器权限弹窗） */
-  request: (name: PermissionName) => Promise<PermissionStatus>;
-  /** 批量查询 */
-  queryAll: (names: PermissionName[]) => Promise<Record<string, PermissionStatus>>;
+  query: (name: PermissionName) => Promise<PermissionState>;
+  request: (name: PermissionName) => Promise<boolean>;
 }
 
-const DEFAULTS: UsePermissionOptions = {
-  autoRequest: false,
-};
-
-export function usePermission(
-  options?: UsePermissionOptions,
-): UsePermissionReturn {
-  const opts = { ...DEFAULTS, ...options };
-
-  const status = ref<Record<string, PermissionStatus>>({});
+/**
+ * 系统权限查询/请求 Hook
+ * 统一封装 Permissions API + 各类权限请求
+ */
+export function usePermission(): UsePermissionReturn {
+  const state = ref<PermissionState | null>(null);
   const loading = ref(false);
   const error = ref<Error | null>(null);
 
-  async function query(name: PermissionName): Promise<PermissionStatus> {
-    try {
-      if (!navigator.permissions) return "unsupported";
-
-      const result = await navigator.permissions.query({
-        name: name as globalThis.PermissionName,
-      });
-
-      const state = result.state as PermissionStatus;
-      status.value = { ...status.value, [name]: state };
-
-      // 监听变化
-      result.onchange = () => {
-        status.value = {
-          ...status.value,
-          [name]: result.state as PermissionStatus,
-        };
-      };
-
-      return state;
-    } catch {
-      // 浏览器不支持查询该权限
-      return "unsupported";
-    }
-  }
-
-  async function request(name: PermissionName): Promise<PermissionStatus> {
+  async function query(name: PermissionName): Promise<PermissionState> {
     loading.value = true;
     error.value = null;
-
     try {
-      const args = await runBeforeExtensions("usePermission", [name]);
-      const targetName: PermissionName = args[0];
-
-      let result: PermissionStatus = "unsupported";
-
-      // 通过调用相关 API 触发权限弹窗
-      switch (targetName) {
-        case "camera":
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-            });
-            stream.getTracks().forEach((t) => t.stop());
-            result = "granted";
-          } catch (e: any) {
-            result = e.name === "NotAllowedError" ? "denied" : "prompt";
-          }
-          break;
-
-        case "microphone":
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-            });
-            stream.getTracks().forEach((t) => t.stop());
-            result = "granted";
-          } catch (e: any) {
-            result = e.name === "NotAllowedError" ? "denied" : "prompt";
-          }
-          break;
-
-        case "geolocation":
-          try {
-            await new Promise<GeolocationPosition>((resolve, reject) =>
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                timeout: 5000,
-              }),
-            );
-            result = "granted";
-          } catch (e: any) {
-            result = e.code === 1 ? "denied" : "prompt";
-          }
-          break;
-
-        case "notifications":
-          if (!("Notification" in window)) {
-            result = "unsupported";
-          } else {
-            const permission = await Notification.requestPermission();
-            result = permission as PermissionStatus;
-          }
-          break;
-
-        default:
-          result = await query(targetName);
-      }
-
-      status.value = { ...status.value, [targetName]: result };
-      await runAfterExtensions("usePermission", {
-        name: targetName,
-        status: result,
+      const result = await navigator.permissions.query({
+        name: name as any,
       });
-      return result;
+      state.value = result.state;
+      return result.state;
     } catch (e) {
       error.value = e as Error;
+      state.value = "denied";
       return "denied";
     } finally {
       loading.value = false;
     }
   }
 
-  async function queryAll(
-    names: PermissionName[],
-  ): Promise<Record<string, PermissionStatus>> {
-    loading.value = true;
+  async function requestMediaPermission(
+    type: "camera" | "microphone",
+  ): Promise<boolean> {
+    const constraints = type === "camera" ? { video: true } : { audio: true };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    stream.getTracks().forEach((t) => t.stop());
+    state.value = "granted";
+    return true;
+  }
 
+  async function requestGeolocation(): Promise<boolean> {
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          state.value = "granted";
+          resolve(true);
+        },
+        () => {
+          state.value = "denied";
+          resolve(false);
+        },
+        { timeout: 10000 },
+      );
+    });
+  }
+
+  async function request(name: PermissionName): Promise<boolean> {
+    loading.value = true;
+    error.value = null;
     try {
-      const results: Record<string, PermissionStatus> = {};
-      for (const name of names) {
-        results[name] = await query(name);
+      if (name === "camera" || name === "microphone") {
+        return await requestMediaPermission(name);
       }
-      status.value = { ...status.value, ...results };
-      return results;
+      if (name === "geolocation") {
+        return await requestGeolocation();
+      }
+      if (name === "notifications") {
+        const result = await Notification.requestPermission();
+        state.value = result === "granted" ? "granted" : "denied";
+        return result === "granted";
+      }
+      const queryResult = await query(name);
+      return queryResult === "granted";
+    } catch (e) {
+      error.value = e as Error;
+      state.value = "denied";
+      return false;
     } finally {
       loading.value = false;
     }
   }
 
-  return { status, loading, error, query, request, queryAll };
+  return { state, loading, error, query, request };
 }
