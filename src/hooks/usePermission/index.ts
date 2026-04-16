@@ -14,6 +14,8 @@ export interface UsePermissionReturn {
   error: Ref<Error | null>;
   query: (name: PermissionName) => Promise<PermissionState>;
   request: (name: PermissionName) => Promise<boolean>;
+  /** 监听权限状态变化，返回取消函数 */
+  watch: (name: PermissionName) => () => void;
 }
 
 /**
@@ -95,5 +97,21 @@ export function usePermission(): UsePermissionReturn {
     }
   }
 
-  return { state, loading, error, query, request };
+  function watch(name: PermissionName): () => void {
+    let unwatch = () => {};
+    navigator.permissions
+      .query({ name: name as any })
+      .then((status) => {
+        const handler = () => {
+          state.value = status.state;
+        };
+        status.addEventListener("change", handler);
+        state.value = status.state;
+        unwatch = () => status.removeEventListener("change", handler);
+      })
+      .catch(() => {});
+    return () => unwatch();
+  }
+
+  return { state, loading, error, query, request, watch };
 }

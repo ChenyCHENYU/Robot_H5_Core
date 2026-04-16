@@ -7,6 +7,10 @@ export interface UseWatermarkOptions {
   fontColor?: string;
   position?: "topLeft" | "topRight" | "bottomLeft" | "bottomRight" | "center";
   opacity?: number;
+  /** 输出格式，默认保留原图格式 */
+  outputType?: string;
+  /** 输出质量 0-1，默认 0.92 */
+  quality?: number;
 }
 
 export interface UseWatermarkReturn {
@@ -90,12 +94,14 @@ export function useWatermark(
 
       ctx.fillText(text, x, y);
 
+      const outputType = merged.outputType || file.type || "image/jpeg";
+      const quality = merged.quality ?? 0.92;
       const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", 0.92),
+        canvas.toBlob(resolve, outputType, quality),
       );
       if (!blob) return null;
 
-      const result = new File([blob], file.name, { type: "image/jpeg" });
+      const result = new File([blob], file.name, { type: outputType });
       const processed = await runAfterExtensions("useWatermark", result);
       return processed;
     } catch (e) {

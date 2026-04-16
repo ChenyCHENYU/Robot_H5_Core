@@ -31,6 +31,7 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
   let chunks: Blob[] = [];
   let timer: ReturnType<typeof setInterval> | null = null;
   let stream: MediaStream | null = null;
+  let startTime = 0;
 
   function getAudioMimeType(): string {
     const types = [
@@ -70,8 +71,9 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
       isRecording.value = true;
       isPaused.value = false;
       duration.value = 0;
+      startTime = Date.now();
       timer = setInterval(() => {
-        duration.value += 100;
+        duration.value = Date.now() - startTime;
       }, 100);
     } catch (e) {
       error.value = e as Error;
@@ -116,8 +118,9 @@ export function useAudioRecorder(options?: UseAudioRecorderOptions): UseAudioRec
     if (mediaRecorder?.state === "paused") {
       mediaRecorder.resume();
       isPaused.value = false;
+      startTime = Date.now() - duration.value;
       timer = setInterval(() => {
-        duration.value += 100;
+        duration.value = Date.now() - startTime;
       }, 100);
     }
   }

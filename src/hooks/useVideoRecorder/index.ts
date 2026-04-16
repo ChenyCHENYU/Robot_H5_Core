@@ -37,6 +37,7 @@ export function useVideoRecorder(options?: UseVideoRecorderOptions): UseVideoRec
   let mediaRecorder: MediaRecorder | null = null;
   let chunks: Blob[] = [];
   let timer: ReturnType<typeof setInterval> | null = null;
+  let startTime = 0;
 
   function getVideoMimeType(): string {
     const types = [
@@ -79,8 +80,9 @@ export function useVideoRecorder(options?: UseVideoRecorderOptions): UseVideoRec
       mediaRecorder.start(100);
       isRecording.value = true;
       duration.value = 0;
+      startTime = Date.now();
       timer = setInterval(() => {
-        duration.value += 100;
+        duration.value = Date.now() - startTime;
       }, 100);
     } catch (e) {
       error.value = e as Error;
