@@ -35,6 +35,9 @@ const browserBridge: BridgeAdapter = {
           else reject(new Error("未选择文件"));
         };
 
+        // 用户取消选择时拒绝 Promise，避免永远 pending
+        input.oncancel = () => reject(new Error("用户取消选择"));
+
         input.click();
       });
     },

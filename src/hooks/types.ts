@@ -12,8 +12,6 @@ export interface UseCameraOptions {
   source?: "camera" | "album" | "both";
   maxSize?: number;
   quality?: number;
-  watermark?: boolean;
-  watermarkText?: string;
 }
 
 export interface UseCameraReturn {

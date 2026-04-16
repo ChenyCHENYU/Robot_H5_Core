@@ -9,7 +9,6 @@ const DEFAULTS: UseCameraOptions = {
   source: "both",
   maxSize: 1024,
   quality: 0.8,
-  watermark: false,
 };
 
 /**

@@ -1,4 +1,4 @@
-import { ref, type Ref } from "vue";
+import { ref, type Ref, onUnmounted } from "vue";
 
 export interface UseOfflineStorageOptions {
   dbName?: string;
@@ -13,6 +13,7 @@ export interface UseOfflineStorageReturn {
   remove: (key: string) => Promise<void>;
   clear: () => Promise<void>;
   keys: () => Promise<string[]>;
+  close: () => void;
 }
 
 const DEFAULTS: UseOfflineStorageOptions = {
@@ -150,5 +151,14 @@ export function useOfflineStorage(
     }
   }
 
-  return { loading, error, get, set, remove, clear, keys };
+  function close(): void {
+    if (db) {
+      db.close();
+      db = null;
+    }
+  }
+
+  onUnmounted(close);
+
+  return { loading, error, get, set, remove, clear, keys, close };
 }
