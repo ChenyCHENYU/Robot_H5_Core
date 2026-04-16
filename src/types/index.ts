@@ -18,8 +18,8 @@ export type {
   UseCameraOptions,
   UseCameraReturn,
   UseAsyncReturn,
-  UseLocationOptions,
 } from "../hooks/types";
+export type { UseLocationOptions } from "../hooks/useLocation";
 export type { HookExtension, ExtensionContext } from "../hooks/extend";
 export type { DeviceInfo } from "../utils/device";
 export type { CompressOptions } from "../utils/image";

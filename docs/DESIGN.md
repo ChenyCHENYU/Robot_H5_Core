@@ -368,7 +368,7 @@ registerAdapter("robot-native-v2", {
 import { extendHook } from "@robot/h5-core";
 
 extendHook("useCamera", {
-  afterCapture: async (file, context) => {
+  after: async (file, context) => {
     const url = await myOssUpload(file);
     context.meta.ossUrl = url;
     return file;

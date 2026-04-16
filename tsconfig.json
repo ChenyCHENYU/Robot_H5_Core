@@ -8,12 +8,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationDir": "./dist",
     "outDir": "./dist",
     "rootDir": "./src",
     "jsx": "preserve",
-    "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }

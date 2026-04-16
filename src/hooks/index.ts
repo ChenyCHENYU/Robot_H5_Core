@@ -17,5 +17,5 @@ export type {
   UseCameraOptions,
   UseCameraReturn,
   UseAsyncReturn,
-  UseLocationOptions,
 } from "./types";
+export type { UseLocationOptions } from "./useLocation";

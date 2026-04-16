@@ -1,6 +1,7 @@
 import { inject, type App, type InjectionKey } from "vue";
 import { defaults } from "./defaults";
 import type { AppConfig } from "./types";
+import { createBridge, BRIDGE_KEY } from "../bridge";
 
 const CONFIG_KEY: InjectionKey<AppConfig> = Symbol("robot-h5-config");
 
@@ -43,9 +44,18 @@ function deepMerge<T extends Record<string, any>>(
  * });
  * ```
  */
-export function defineAppConfig(app: App, config: AppConfig = {}): void {
+export async function defineAppConfig(
+  app: App,
+  config: AppConfig = {},
+): Promise<void> {
   const merged = deepMerge(defaults, config);
   app.provide(CONFIG_KEY, merged);
+
+  const bridge = await createBridge(
+    merged.bridge?.platform,
+    merged.bridge?.nativeUA,
+  );
+  app.provide(BRIDGE_KEY, bridge);
 }
 
 /**

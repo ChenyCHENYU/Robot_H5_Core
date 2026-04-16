@@ -8,6 +8,7 @@
 - ✅ Bridge 注册表 (registerAdapter / resolveAdapter)
 - ✅ 环境检测 (detectPlatform)
 - ✅ Hook 扩展系统 (extendHook / before / after)
+- ✅ Bridge 重置 (resetBridge)
 
 ## Bridge 适配器
 
@@ -15,6 +16,7 @@
 - ⬜ NativeBridge（APP WebView）— 桩实现，待原生协议
 - ⬜ DingtalkBridge（钉钉）— 桩实现，待 dingtalk-jsapi
 - ⬜ WechatBridge（微信/企微）— 桩实现，待 weixin-js-sdk
+- ✅ createStubAdapter 工厂（消除桩代码重复）
 
 ## Hooks
 
@@ -22,16 +24,16 @@
 - ✅ useLocation — GPS 定位 + 持续监听
 - ✅ useQrScanner — 扫码
 - ✅ useNfc — NFC 读写
-- ✅ useFileUpload — 分片上传
+- ✅ useFileUpload — 分片上传 + 单片自动重试
 - ✅ useFilePreview — 文件预览
 - ✅ useSignature — 手写签名
-- ✅ useAudioRecorder — 录音
-- ✅ useVideoRecorder — 视频录制
+- ✅ useAudioRecorder — 录音（精确计时）
+- ✅ useVideoRecorder — 视频录制（精确计时）
 - ✅ useBluetooth — 蓝牙
-- ✅ useOfflineStorage — 离线存储
+- ✅ useOfflineStorage — 离线存储 + 自动关闭连接
 - ✅ usePushNotification — 推送
-- ✅ useWatermark — 水印
-- ✅ usePermission — 权限
+- ✅ useWatermark — 水印（保留原图格式）
+- ✅ usePermission — 权限查询/请求/状态监听
 
 ## Utils 工具函数
 

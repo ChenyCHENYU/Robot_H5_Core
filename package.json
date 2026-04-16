@@ -2,12 +2,11 @@
   "name": "@robot/h5-core",
   "version": "0.0.1",
   "description": "企业级移动端 H5 通用能力包 — 厚组合层架构",
-  "private": true,
   "type": "module",
   "license": "UNLICENSED",
   "author": {
     "name": "CHENY",
-    "email": "cheny@agile-team.cn"
+    "email": "ycyplus@gmail.com"
   },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -42,7 +41,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vue-tsc --emitDeclarationOnly",
+    "build": "vite build",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",

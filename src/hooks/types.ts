@@ -22,8 +22,3 @@ export interface UseCameraReturn {
   capture: (options?: Partial<UseCameraOptions>) => Promise<File | null>;
   clear: () => void;
 }
-
-export interface UseLocationOptions {
-  timeout?: number;
-  enableHighAccuracy?: boolean;
-}

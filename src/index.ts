@@ -1,6 +1,11 @@
 // @robot/h5-core 顶层入口
 export { defineAppConfig, useAppConfig } from "./config";
-export { createBridge, useBridge, registerAdapter } from "./bridge";
+export {
+  createBridge,
+  useBridge,
+  resetBridge,
+  registerAdapter,
+} from "./bridge";
 export { extendHook } from "./hooks/extend";
 
 // Hooks

@@ -22,7 +22,7 @@ import App from "./App.vue";
 
 const app = createApp(App);
 
-defineAppConfig(app, {
+await defineAppConfig(app, {
   bridge: { platform: "auto" },
   upload: { action: "/api/file/upload", headers: () => ({ Authorization: `Bearer ${getToken()}` }) },
   image: { maxSize: 1024, quality: 0.8 },
