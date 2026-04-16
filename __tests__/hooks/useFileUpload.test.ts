@@ -64,8 +64,11 @@ describe("useFileUpload", () => {
   });
 
   it("HTTP 错误时设置 error", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
-    const { upload, error } = useFileUpload({ action: "/api/upload" });
+    mockFetch.mockResolvedValue({ ok: false, status: 500 });
+    const { upload, error } = useFileUpload({
+      action: "/api/upload",
+      maxRetries: 0,
+    });
     await upload(new File(["x"], "x.txt"));
     expect(error.value?.message).toContain("500");
   });
