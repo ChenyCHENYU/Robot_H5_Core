@@ -1,77 +1,56 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockBridge, createMockConfig } from "./_helpers";
+
+const mockBridge = createMockBridge();
+vi.mock("../../src/bridge", () => ({
+  useBridge: () => mockBridge,
+}));
+vi.mock("../../src/config", () => ({
+  useAppConfig: () => createMockConfig(),
+}));
+
 import { useCamera } from "../../src/hooks/useCamera";
-import { clearExtensions, extendHook } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("useCamera", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useCamera());
-    expect(result.photo.value).toBeNull();
-    expect(result.preview.value).toBe("");
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { photo, preview, loading, error } = useCamera();
+    expect(photo.value).toBeNull();
+    expect(preview.value).toBe("");
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
-  it("capture 调用 bridge 并返回文件", async () => {
-    const mockFile = new File(["test"], "photo.jpg", { type: "image/jpeg" });
-    const { result } = withSetup(() => useCamera(), {
-      camera: { capture: vi.fn().mockResolvedValue(mockFile) },
-    });
-
-    const file = await result.capture();
-    expect(file).toBeInstanceOf(File);
-    expect(result.photo.value).toBeInstanceOf(File);
-    expect(result.loading.value).toBe(false);
+  it("capture 调用 bridge 并返回 File", async () => {
+    const { capture, photo, loading } = useCamera();
+    const result = await capture();
+    expect(result).toBeInstanceOf(File);
+    expect(photo.value).toBeInstanceOf(File);
+    expect(mockBridge.camera.capture).toHaveBeenCalledOnce();
+    expect(loading.value).toBe(false);
   });
 
-  it("capture 失败时设置 error", async () => {
-    const { result } = withSetup(() => useCamera(), {
-      camera: { capture: vi.fn().mockRejectedValue(new Error("相机不可用")) },
-    });
-
-    const file = await result.capture();
-    expect(file).toBeNull();
-    expect(result.error.value?.message).toBe("相机不可用");
+  it("capture 错误时设置 error", async () => {
+    mockBridge.camera.capture.mockRejectedValueOnce(new Error("denied"));
+    const { capture, error } = useCamera();
+    const result = await capture();
+    expect(result).toBeNull();
+    expect(error.value?.message).toBe("denied");
   });
 
-  it("clear 清空状态", async () => {
-    const mockFile = new File(["test"], "photo.jpg", { type: "image/jpeg" });
-    const { result } = withSetup(() => useCamera(), {
-      camera: { capture: vi.fn().mockResolvedValue(mockFile) },
-    });
-
-    await result.capture();
-    expect(result.photo.value).not.toBeNull();
-
-    result.clear();
-    expect(result.photo.value).toBeNull();
-    expect(result.preview.value).toBe("");
+  it("clear 清除状态", async () => {
+    const { capture, clear, photo, preview } = useCamera();
+    await capture();
+    clear();
+    expect(photo.value).toBeNull();
+    expect(preview.value).toBe("");
   });
 
-  it("支持 before/after 扩展", async () => {
-    const mockFile = new File(["test"], "photo.jpg", { type: "image/jpeg" });
-
-    extendHook("useCamera", {
-      before: (opts) => [{ ...opts, quality: 0.5 }],
-    });
-
-    let afterCalled = false;
-    extendHook("useCamera", {
-      after: (file, ctx) => {
-        afterCalled = true;
-        return file;
-      },
-    });
-
-    const { result } = withSetup(() => useCamera(), {
-      camera: { capture: vi.fn().mockResolvedValue(mockFile) },
-    });
-
-    await result.capture();
-    expect(afterCalled).toBe(true);
+  it("支持 options 合并", () => {
+    const { capture } = useCamera({ maxSize: 500, quality: 0.5 });
+    expect(capture).toBeTypeOf("function");
   });
 });

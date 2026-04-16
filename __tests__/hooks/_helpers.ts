@@ -1,90 +1,74 @@
 /**
- * 测试辅助：在 Vue app context 中执行 composable
+ * 测试辅助：创建 Mock Bridge 和 Mock App Config
  */
-import { createApp, defineComponent, h, type App, type InjectionKey } from "vue";
-import { defineAppConfig } from "../../src/config";
-import { BRIDGE_KEY } from "../../src/bridge";
+import { vi } from "vitest";
 import type { BridgeAdapter } from "../../src/bridge/types";
 
-/**
- * 创建一个最小化的 mock BridgeAdapter
- */
-export function createMockBridge(
-  overrides?: Partial<BridgeAdapter>,
-): BridgeAdapter {
+export function createMockBridge(): BridgeAdapter {
   return {
-    platform: "mock",
+    platform: "browser",
     camera: {
-      capture: vi.fn().mockResolvedValue(new File(["img"], "photo.jpg", { type: "image/jpeg" })),
-      ...overrides?.camera,
+      capture: vi
+        .fn()
+        .mockResolvedValue(
+          new File(["img"], "test.jpg", { type: "image/jpeg" }),
+        ),
     },
     scanner: {
       scan: vi.fn().mockResolvedValue("https://example.com"),
-      ...overrides?.scanner,
     },
     location: {
       getCurrent: vi.fn().mockResolvedValue({
-        longitude: 116.397,
-        latitude: 39.909,
+        longitude: 116.4,
+        latitude: 39.9,
         accuracy: 10,
         timestamp: Date.now(),
       }),
-      watchPosition: vi.fn().mockReturnValue(() => {}),
-      ...overrides?.location,
+      watchPosition: vi.fn().mockImplementation((cb) => {
+        cb({
+          longitude: 116.4,
+          latitude: 39.9,
+          accuracy: 10,
+          timestamp: Date.now(),
+        });
+        return () => {};
+      }),
     },
     nfc: {
-      read: vi.fn().mockResolvedValue({ id: "nfc-1", type: "NDEF", records: [] }),
+      read: vi.fn().mockResolvedValue({
+        id: "abc",
+        type: "NDEF",
+        records: [{ type: "text", data: "hello" }],
+      }),
       write: vi.fn().mockResolvedValue(undefined),
-      ...overrides?.nfc,
     },
     bluetooth: {
-      connect: vi.fn().mockResolvedValue({ id: "bt-1", name: "Device", connected: true }),
+      connect: vi.fn().mockResolvedValue({
+        id: "dev1",
+        name: "Device 1",
+        connected: true,
+      }),
       disconnect: vi.fn().mockResolvedValue(undefined),
-      ...overrides?.bluetooth,
     },
     file: {
       preview: vi.fn().mockResolvedValue(undefined),
-      ...overrides?.file,
     },
     notification: {
       register: vi.fn().mockResolvedValue(undefined),
-      onMessage: vi.fn().mockReturnValue(() => {}),
-      ...overrides?.notification,
+      onMessage: vi.fn().mockImplementation(() => () => {}),
     },
   };
 }
 
-/**
- * 在带有 app context 的环境中运行 composable
- * 自动提供 config 和 bridge
- */
-export function withSetup<T>(
-  composable: () => T,
-  bridgeOverrides?: Partial<BridgeAdapter>,
-): { result: T; app: App } {
-  let result!: T;
-  const bridge = createMockBridge(bridgeOverrides);
-
-  const app = createApp(
-    defineComponent({
-      setup() {
-        result = composable();
-        return () => h("div");
-      },
-    }),
-  );
-
-  // 注入全局配置
-  defineAppConfig(app, {
-    image: { maxSize: 1024, quality: 0.8 },
-    location: { coordType: "gcj02", timeout: 10000 },
-    upload: { action: "/api/upload", chunkSize: 2 * 1024 * 1024 },
-  });
-
-  // 注入 Bridge
-  app.provide(BRIDGE_KEY, bridge);
-
-  app.mount(document.createElement("div"));
-
-  return { result, app };
+export function createMockConfig() {
+  return {
+    bridge: { platform: "auto" as const },
+    upload: {
+      action: "/api/file/upload",
+      chunkSize: 2 * 1024 * 1024,
+      headers: {},
+    },
+    image: { maxSize: 1024, quality: 0.8, maxWidth: 1920, maxHeight: 1920 },
+    location: { coordType: "gcj02" as const, timeout: 10000 },
+  };
 }

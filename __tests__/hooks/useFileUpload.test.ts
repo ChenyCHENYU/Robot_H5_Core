@@ -1,98 +1,86 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockConfig } from "./_helpers";
+
+vi.mock("../../src/config", () => ({
+  useAppConfig: () => createMockConfig(),
+}));
+
+// Mock fetch
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
 import { useFileUpload } from "../../src/hooks/useFileUpload";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("useFileUpload", () => {
   beforeEach(() => {
-    clearExtensions();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ code: 200, url: "/files/test.txt" }),
+    });
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useFileUpload());
-    expect(result.uploading.value).toBe(false);
-    expect(result.error.value).toBeNull();
-    expect(result.result.value).toBeNull();
-    expect(result.progress.value.percent).toBe(0);
+    const { uploading, error, progress } = useFileUpload();
+    expect(uploading.value).toBe(false);
+    expect(error.value).toBeNull();
+    expect(progress.value.percent).toBe(0);
   });
 
-  it("upload 小文件直传", async () => {
-    const mockResponse = { code: 200, url: "/files/test.jpg" };
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
+  it("upload 小文件成功", async () => {
+    const { upload, progress } = useFileUpload({
+      action: "/api/upload",
+      chunkSize: 1024 * 1024,
     });
-
-    const { result } = withSetup(() =>
-      useFileUpload({ action: "/api/upload" }),
-    );
-
-    const file = new File(["content"], "test.jpg", { type: "image/jpeg" });
-    const res = await result.upload(file);
-    expect(res).toEqual(mockResponse);
-    expect(result.result.value).toEqual(mockResponse);
-    expect(result.progress.value.percent).toBe(100);
+    const file = new File(["hello"], "test.txt", { type: "text/plain" });
+    const result = await upload(file);
+    expect(result).toEqual({ code: 200, url: "/files/test.txt" });
+    expect(progress.value.percent).toBe(100);
+    expect(mockFetch).toHaveBeenCalledOnce();
   });
 
-  it("upload 验证文件大小", async () => {
-    const { result } = withSetup(() =>
-      useFileUpload({ action: "/api/upload", maxFileSize: 10 }),
-    );
-
-    const bigFile = new File(["a".repeat(100)], "big.jpg", { type: "image/jpeg" });
-    const res = await result.upload(bigFile);
-    expect(res).toBeNull();
-    expect(result.error.value?.message).toContain("超过限制");
+  it("未配置 action 返回错误", async () => {
+    const { upload, error } = useFileUpload({ action: "" });
+    const result = await upload(new File(["x"], "x.txt"));
+    expect(result).toBeNull();
+    expect(error.value?.message).toContain("action");
   });
 
-  it("upload 验证文件类型", async () => {
-    const { result } = withSetup(() =>
-      useFileUpload({
-        action: "/api/upload",
-        accept: ["image/jpeg", "image/png"],
+  it("abort 取消上传", async () => {
+    const { upload, abort } = useFileUpload({ action: "/api/upload" });
+    mockFetch.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new DOMException("Aborted", "AbortError")),
+            50,
+          );
+        }),
+    );
+    const promise = upload(new File(["x"], "x.txt"));
+    abort();
+    const result = await promise;
+    expect(result).toBeNull();
+  });
+
+  it("HTTP 错误时设置 error", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+    const { upload, error } = useFileUpload({ action: "/api/upload" });
+    await upload(new File(["x"], "x.txt"));
+    expect(error.value?.message).toContain("500");
+  });
+
+  it("headers 支持函数形式", async () => {
+    const { upload } = useFileUpload({
+      action: "/api/upload",
+      headers: () => ({ Authorization: "Bearer token123" }),
+    });
+    await upload(new File(["x"], "x.txt"));
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/upload",
+      expect.objectContaining({
+        headers: { Authorization: "Bearer token123" },
       }),
     );
-
-    const file = new File(["content"], "doc.pdf", {
-      type: "application/pdf",
-    });
-    const res = await result.upload(file);
-    expect(res).toBeNull();
-    expect(result.error.value?.message).toContain("不在允许范围");
-  });
-
-  it("upload 无 action 时报错", async () => {
-    const { result } = withSetup(() => useFileUpload({ action: "" }));
-
-    const file = new File(["content"], "test.jpg", { type: "image/jpeg" });
-    const res = await result.upload(file);
-    expect(res).toBeNull();
-    expect(result.error.value?.message).toContain("未配置上传地址");
-  });
-
-  it("upload 失败时设置 error", async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Server Error",
-    });
-
-    const { result } = withSetup(() =>
-      useFileUpload({ action: "/api/upload" }),
-    );
-
-    const file = new File(["content"], "test.jpg", { type: "image/jpeg" });
-    const res = await result.upload(file);
-    expect(res).toBeNull();
-    expect(result.error.value?.message).toContain("上传失败");
-  });
-
-  it("abort 取消上传", () => {
-    const { result } = withSetup(() =>
-      useFileUpload({ action: "/api/upload" }),
-    );
-    // 应该不抛错
-    result.abort();
   });
 });

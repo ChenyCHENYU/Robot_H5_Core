@@ -1,52 +1,73 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { useWatermark } from "../../src/hooks/useWatermark";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
+
+// Mock createImageBitmap
+vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
+  width: 800,
+  height: 600,
+  close: vi.fn(),
+}));
 
 describe("useWatermark", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useWatermark());
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { loading, error } = useWatermark();
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
-  it("createPageWatermark 创建水印层", () => {
-    const { result } = withSetup(() =>
-      useWatermark({ texts: ["TestUser"], showTime: false }),
-    );
+  it("addWatermark 成功时返回 File", async () => {
+    // Mock canvas
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 100 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+    };
+    const mockCanvas = {
+      width: 800,
+      height: 600,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["watermarked"]))),
+    };
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
 
-    const container = document.createElement("div");
-    const cleanup = result.createPageWatermark(container, {
-      texts: ["TestUser"],
-      showTime: false,
-    });
-
-    // 应该添加了一个子元素
-    expect(container.children.length).toBeGreaterThanOrEqual(1);
-    const watermarkDiv = container.querySelector("div");
-    expect(watermarkDiv).not.toBeNull();
-    expect(watermarkDiv?.style.pointerEvents).toBe("none");
-
-    // cleanup 移除水印
-    cleanup();
+    const { addWatermark } = useWatermark({ text: "测试水印" });
+    const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    const result = await addWatermark(file);
+    expect(result).toBeInstanceOf(File);
+    expect(result!.name).toBe("photo.jpg");
   });
 
-  it("createPageWatermark 返回清理函数", () => {
-    const { result } = withSetup(() =>
-      useWatermark({ texts: ["Test"], showTime: false }),
+  it("addWatermark 错误处理", async () => {
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn().mockRejectedValue(new Error("解码失败")),
     );
+    const { addWatermark, error } = useWatermark({ text: "test" });
+    const file = new File(["bad"], "bad.jpg", { type: "image/jpeg" });
+    const result = await addWatermark(file);
+    expect(result).toBeNull();
+    expect(error.value?.message).toBe("解码失败");
+  });
 
-    const container = document.createElement("div");
-    const cleanup = result.createPageWatermark(container, {
-      texts: ["Test"],
-      showTime: false,
-    });
-
-    expect(typeof cleanup).toBe("function");
-    cleanup();
+  it("支持不同水印位置", () => {
+    const positions = [
+      "topLeft",
+      "topRight",
+      "bottomLeft",
+      "bottomRight",
+      "center",
+    ] as const;
+    for (const pos of positions) {
+      const { loading } = useWatermark({ position: pos, text: "test" });
+      expect(loading.value).toBe(false);
+    }
   });
 });

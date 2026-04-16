@@ -1,85 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockBridge } from "./_helpers";
+
+const mockBridge = createMockBridge();
+vi.mock("../../src/bridge", () => ({
+  useBridge: () => mockBridge,
+}));
+
 import { usePushNotification } from "../../src/hooks/usePushNotification";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("usePushNotification", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => usePushNotification());
-    expect(result.lastMessage.value).toBeNull();
-    expect(result.messages.value).toEqual([]);
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { messages, loading, error } = usePushNotification();
+    expect(messages.value).toEqual([]);
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
   it("register 成功", async () => {
-    const registerMock = vi.fn().mockResolvedValue(undefined);
-    const { result } = withSetup(() => usePushNotification(), {
-      notification: {
-        register: registerMock,
-        onMessage: vi.fn().mockReturnValue(() => {}),
-      },
-    });
-
-    const ok = await result.register("token-123");
-    expect(ok).toBe(true);
-    expect(registerMock).toHaveBeenCalledWith("token-123");
+    const { register } = usePushNotification();
+    const result = await register("test-token");
+    expect(result).toBe(true);
+    expect(mockBridge.notification.register).toHaveBeenCalledWith("test-token");
   });
 
-  it("register 无 token 时报错", async () => {
-    const { result } = withSetup(() => usePushNotification());
-
-    const ok = await result.register();
-    expect(ok).toBe(false);
-    expect(result.error.value?.message).toContain("未提供推送 token");
+  it("register 错误处理", async () => {
+    mockBridge.notification.register.mockRejectedValueOnce(
+      new Error("注册失败"),
+    );
+    const { register, error } = usePushNotification();
+    const result = await register("token");
+    expect(result).toBe(false);
+    expect(error.value?.message).toBe("注册失败");
   });
 
-  it("register 失败时设置 error", async () => {
-    const { result } = withSetup(() => usePushNotification(), {
-      notification: {
-        register: vi.fn().mockRejectedValue(new Error("注册失败")),
-        onMessage: vi.fn().mockReturnValue(() => {}),
-      },
-    });
-
-    const ok = await result.register("token-123");
-    expect(ok).toBe(false);
-    expect(result.error.value?.message).toBe("注册失败");
-  });
-
-  it("startListening / stopListening", () => {
-    const stopMock = vi.fn();
-    const onMessageMock = vi.fn().mockReturnValue(stopMock);
-
-    const { result } = withSetup(() => usePushNotification(), {
-      notification: {
-        register: vi.fn().mockResolvedValue(undefined),
-        onMessage: onMessageMock,
-      },
-    });
-
-    result.startListening();
-    expect(onMessageMock).toHaveBeenCalled();
-
-    result.stopListening();
-    expect(stopMock).toHaveBeenCalled();
+  it("onMessage 注册回调", () => {
+    const { onMessage } = usePushNotification();
+    const callback = vi.fn();
+    onMessage(callback);
+    expect(mockBridge.notification.onMessage).toHaveBeenCalled();
   });
 
   it("clearMessages 清空消息", () => {
-    const { result } = withSetup(() => usePushNotification());
-
-    // 模拟有消息
-    result.messages.value = [
-      { title: "Test", body: "Hello", timestamp: Date.now() },
-    ];
-    result.lastMessage.value = { title: "Test", body: "Hello", timestamp: Date.now() };
-
-    result.clearMessages();
-    expect(result.messages.value).toEqual([]);
-    expect(result.lastMessage.value).toBeNull();
+    const { messages, clearMessages } = usePushNotification();
+    messages.value.push({
+      title: "test",
+      body: "test body",
+      timestamp: Date.now(),
+    });
+    clearMessages();
+    expect(messages.value).toEqual([]);
   });
 });

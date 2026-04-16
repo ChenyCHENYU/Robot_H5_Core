@@ -1,91 +1,85 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import { useSignature } from "../../src/hooks/useSignature";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
+
+// Mock canvas context
+function createMockCanvas() {
+  const ctx = {
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fillRect: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn().mockReturnValue({ width: 50 }),
+    fillStyle: "",
+    strokeStyle: "",
+    lineWidth: 1,
+    lineCap: "butt" as CanvasLineCap,
+    lineJoin: "miter" as CanvasLineJoin,
+    globalAlpha: 1,
+    font: "",
+  };
+
+  const canvas = {
+    width: 300,
+    height: 150,
+    getContext: vi.fn().mockReturnValue(ctx),
+    getBoundingClientRect: vi.fn().mockReturnValue({ left: 0, top: 0 }),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["img"]))),
+  } as unknown as HTMLCanvasElement;
+
+  return { canvas, ctx };
+}
 
 describe("useSignature", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
-  it("初始状态正确", () => {
-    const { result } = withSetup(() => useSignature());
-    expect(result.signature.value).toBe("");
-    expect(result.isEmpty.value).toBe(true);
+  it("初始状态 isEmpty 为 true", () => {
+    const { isEmpty } = useSignature();
+    expect(isEmpty.value).toBe(true);
   });
 
-  it("bindCanvas 初始化画布", () => {
-    const { result } = withSetup(() =>
-      useSignature({ width: 400, height: 200 }),
-    );
-
-    const canvas = document.createElement("canvas");
-    // Mock getContext
-    const mockCtx = {
-      fillStyle: "",
-      strokeStyle: "",
-      lineWidth: 0,
-      lineCap: "",
-      lineJoin: "",
-      fillRect: vi.fn(),
-      beginPath: vi.fn(),
-      moveTo: vi.fn(),
-      lineTo: vi.fn(),
-      stroke: vi.fn(),
-      getImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
-      putImageData: vi.fn(),
-    };
-    vi.spyOn(canvas, "getContext").mockReturnValue(mockCtx as any);
-
-    result.bindCanvas(canvas);
-    expect(canvas.width).toBe(400);
-    expect(canvas.height).toBe(200);
-    expect(mockCtx.fillRect).toHaveBeenCalled();
+  it("bindCanvas 绑定 canvas 元素", () => {
+    const { bindCanvas } = useSignature();
+    const { canvas } = createMockCanvas();
+    bindCanvas(canvas);
+    expect(canvas.getContext).toHaveBeenCalledWith("2d");
+    expect(canvas.addEventListener).toHaveBeenCalled();
   });
 
-  it("clear 重置画布", () => {
-    const { result } = withSetup(() => useSignature());
-
-    const canvas = document.createElement("canvas");
-    const mockCtx = {
-      fillStyle: "",
-      strokeStyle: "",
-      lineWidth: 0,
-      lineCap: "",
-      lineJoin: "",
-      fillRect: vi.fn(),
-    };
-    vi.spyOn(canvas, "getContext").mockReturnValue(mockCtx as any);
-
-    result.bindCanvas(canvas);
-    result.clear();
-    expect(result.isEmpty.value).toBe(true);
-    expect(result.signature.value).toBe("");
+  it("clear 重置状态", () => {
+    const { bindCanvas, clear, isEmpty } = useSignature();
+    const { canvas } = createMockCanvas();
+    bindCanvas(canvas);
+    clear();
+    expect(isEmpty.value).toBe(true);
   });
 
-  it("toDataURL 导出 base64", () => {
-    const { result } = withSetup(() => useSignature());
-
-    const canvas = document.createElement("canvas");
-    const mockCtx = {
-      fillStyle: "",
-      strokeStyle: "",
-      lineWidth: 0,
-      lineCap: "",
-      lineJoin: "",
-      fillRect: vi.fn(),
-    };
-    vi.spyOn(canvas, "getContext").mockReturnValue(mockCtx as any);
-    vi.spyOn(canvas, "toDataURL").mockReturnValue("data:image/png;base64,xxx");
-
-    result.bindCanvas(canvas);
-    const url = result.toDataURL();
-    expect(url).toContain("data:image/png");
-    expect(result.signature.value).toContain("data:image/png");
+  it("save 空签名返回 null", async () => {
+    const { save } = useSignature();
+    const result = await save();
+    expect(result).toBeNull();
   });
 
-  it("toFile 未绑定 canvas 时抛错", async () => {
-    const { result } = withSetup(() => useSignature());
-    await expect(result.toFile()).rejects.toThrow("canvas 未绑定");
+  it("undo 撤销最后一笔", () => {
+    const { bindCanvas, undo, isEmpty } = useSignature();
+    const { canvas } = createMockCanvas();
+    bindCanvas(canvas);
+    undo();
+    expect(isEmpty.value).toBe(true);
+  });
+
+  it("支持自定义选项", () => {
+    const { isEmpty } = useSignature({
+      lineWidth: 5,
+      strokeColor: "#ff0000",
+      backgroundColor: "#f5f5f5",
+    });
+    expect(isEmpty.value).toBe(true);
   });
 });

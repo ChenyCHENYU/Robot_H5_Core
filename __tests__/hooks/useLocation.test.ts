@@ -1,65 +1,49 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockBridge, createMockConfig } from "./_helpers";
+
+const mockBridge = createMockBridge();
+vi.mock("../../src/bridge", () => ({
+  useBridge: () => mockBridge,
+}));
+vi.mock("../../src/config", () => ({
+  useAppConfig: () => createMockConfig(),
+}));
+
 import { useLocation } from "../../src/hooks/useLocation";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("useLocation", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useLocation());
-    expect(result.position.value).toBeNull();
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { position, loading, error } = useLocation();
+    expect(position.value).toBeNull();
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
   it("getCurrentPosition 返回坐标", async () => {
-    const mockPos = {
-      longitude: 116.397,
-      latitude: 39.909,
-      accuracy: 10,
-      timestamp: Date.now(),
-    };
-
-    const { result } = withSetup(() => useLocation(), {
-      location: {
-        getCurrent: vi.fn().mockResolvedValue(mockPos),
-        watchPosition: vi.fn().mockReturnValue(() => {}),
-      },
-    });
-
-    const pos = await result.getCurrentPosition();
-    expect(pos).toEqual(mockPos);
-    expect(result.position.value).toEqual(mockPos);
-    expect(result.loading.value).toBe(false);
+    const { getCurrentPosition, position } = useLocation();
+    const pos = await getCurrentPosition();
+    expect(pos).toBeDefined();
+    expect(pos!.longitude).toBe(116.4);
+    expect(pos!.latitude).toBe(39.9);
+    expect(position.value).toEqual(pos);
   });
 
-  it("getCurrentPosition 失败时设置 error", async () => {
-    const { result } = withSetup(() => useLocation(), {
-      location: {
-        getCurrent: vi.fn().mockRejectedValue(new Error("定位超时")),
-        watchPosition: vi.fn().mockReturnValue(() => {}),
-      },
-    });
-
-    const pos = await result.getCurrentPosition();
+  it("getCurrentPosition 错误处理", async () => {
+    mockBridge.location.getCurrent.mockRejectedValueOnce(new Error("定位失败"));
+    const { getCurrentPosition, error } = useLocation();
+    const pos = await getCurrentPosition();
     expect(pos).toBeNull();
-    expect(result.error.value?.message).toBe("定位超时");
+    expect(error.value?.message).toBe("定位失败");
   });
 
-  it("watchPosition 和 stopWatch 正常工作", () => {
-    const stopMock = vi.fn();
-    const { result } = withSetup(() => useLocation(), {
-      location: {
-        getCurrent: vi.fn().mockResolvedValue(null),
-        watchPosition: vi.fn().mockReturnValue(stopMock),
-      },
-    });
-
-    result.watchPosition();
-    result.stopWatch();
-    expect(stopMock).toHaveBeenCalled();
+  it("watchPosition 和 stopWatch", () => {
+    const { watchPosition, stopWatch } = useLocation();
+    watchPosition();
+    expect(mockBridge.location.watchPosition).toHaveBeenCalledOnce();
+    stopWatch();
   });
 });

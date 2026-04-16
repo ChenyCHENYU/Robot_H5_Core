@@ -1,65 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockBridge } from "./_helpers";
+
+const mockBridge = createMockBridge();
+vi.mock("../../src/bridge", () => ({
+  useBridge: () => mockBridge,
+}));
+
 import { useBluetooth } from "../../src/hooks/useBluetooth";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("useBluetooth", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useBluetooth());
-    expect(result.device.value).toBeNull();
-    expect(result.connected.value).toBe(false);
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { device, connected, loading, error } = useBluetooth();
+    expect(device.value).toBeNull();
+    expect(connected.value).toBe(false);
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
   it("connect 成功", async () => {
-    const mockDevice = { id: "bt-1", name: "Printer", connected: true };
-    const { result } = withSetup(() => useBluetooth(), {
-      bluetooth: {
-        connect: vi.fn().mockResolvedValue(mockDevice),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-      },
-    });
-
-    const ok = await result.connect("bt-1");
-    expect(ok).toBe(true);
-    expect(result.device.value).toEqual(mockDevice);
-    expect(result.connected.value).toBe(true);
+    const { connect, device, connected } = useBluetooth();
+    const result = await connect("dev1");
+    expect(result).toBeDefined();
+    expect(result!.id).toBe("dev1");
+    expect(device.value).toEqual(result);
+    expect(connected.value).toBe(true);
   });
 
-  it("connect 失败", async () => {
-    const { result } = withSetup(() => useBluetooth(), {
-      bluetooth: {
-        connect: vi.fn().mockRejectedValue(new Error("连接失败")),
-        disconnect: vi.fn().mockResolvedValue(undefined),
-      },
-    });
-
-    const ok = await result.connect("bt-1");
-    expect(ok).toBe(false);
-    expect(result.error.value?.message).toBe("连接失败");
-    expect(result.connected.value).toBe(false);
+  it("connect 错误处理", async () => {
+    mockBridge.bluetooth.connect.mockRejectedValueOnce(new Error("连接失败"));
+    const { connect, error } = useBluetooth();
+    const result = await connect("dev1");
+    expect(result).toBeNull();
+    expect(error.value?.message).toBe("连接失败");
   });
 
-  it("disconnect 重置状态", async () => {
-    const disconnectMock = vi.fn().mockResolvedValue(undefined);
-    const { result } = withSetup(() => useBluetooth(), {
-      bluetooth: {
-        connect: vi
-          .fn()
-          .mockResolvedValue({ id: "bt-1", name: "D", connected: true }),
-        disconnect: disconnectMock,
-      },
-    });
+  it("disconnect 成功", async () => {
+    const { connect, disconnect, device, connected } = useBluetooth();
+    await connect("dev1");
+    await disconnect();
+    expect(device.value).toBeNull();
+    expect(connected.value).toBe(false);
+  });
 
-    await result.connect("bt-1");
-    await result.disconnect();
-    expect(result.device.value).toBeNull();
-    expect(result.connected.value).toBe(false);
-    expect(disconnectMock).toHaveBeenCalled();
+  it("disconnect 错误处理", async () => {
+    mockBridge.bluetooth.disconnect.mockRejectedValueOnce(
+      new Error("断开失败"),
+    );
+    const { disconnect, error } = useBluetooth();
+    await disconnect();
+    expect(error.value?.message).toBe("断开失败");
   });
 });

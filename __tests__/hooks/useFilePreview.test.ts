@@ -1,57 +1,48 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockBridge } from "./_helpers";
+
+const mockBridge = createMockBridge();
+vi.mock("../../src/bridge", () => ({
+  useBridge: () => mockBridge,
+}));
+
 import { useFilePreview } from "../../src/hooks/useFilePreview";
-import { clearExtensions } from "../../src/hooks/extend";
-import { withSetup } from "./_helpers";
 
 describe("useFilePreview", () => {
   beforeEach(() => {
-    clearExtensions();
+    vi.clearAllMocks();
   });
 
   it("初始状态正确", () => {
-    const { result } = withSetup(() => useFilePreview());
-    expect(result.loading.value).toBe(false);
-    expect(result.error.value).toBeNull();
+    const { loading, error } = useFilePreview();
+    expect(loading.value).toBe(false);
+    expect(error.value).toBeNull();
   });
 
   it("preview 调用 bridge.file.preview", async () => {
-    const previewMock = vi.fn().mockResolvedValue(undefined);
-    const { result } = withSetup(() => useFilePreview(), {
-      file: { preview: previewMock },
-    });
-
-    const ok = await result.preview("https://example.com/doc.pdf", "doc.pdf");
-    expect(ok).toBe(true);
-    expect(previewMock).toHaveBeenCalledWith(
+    const { preview } = useFilePreview();
+    await preview("https://example.com/doc.pdf", "doc.pdf");
+    expect(mockBridge.file.preview).toHaveBeenCalledWith(
       "https://example.com/doc.pdf",
       "doc.pdf",
     );
   });
 
-  it("preview window 模式打开新窗口", async () => {
-    const openMock = vi.fn();
-    vi.stubGlobal("open", openMock);
-
-    const { result } = withSetup(() =>
-      useFilePreview({ mode: "window" }),
+  it("配置 previewServer 时拼接 URL", async () => {
+    const { preview } = useFilePreview({
+      previewServer: "https://preview.example.com",
+    });
+    await preview("https://oss.example.com/file.docx");
+    expect(mockBridge.file.preview).toHaveBeenCalledWith(
+      expect.stringContaining("preview.example.com"),
+      undefined,
     );
-
-    await result.preview("https://example.com/doc.pdf");
-    expect(openMock).toHaveBeenCalledWith(
-      "https://example.com/doc.pdf",
-      "_blank",
-    );
-
-    vi.unstubAllGlobals();
   });
 
-  it("preview 失败时设置 error", async () => {
-    const { result } = withSetup(() => useFilePreview(), {
-      file: { preview: vi.fn().mockRejectedValue(new Error("预览失败")) },
-    });
-
-    const ok = await result.preview("https://example.com/doc.pdf");
-    expect(ok).toBe(false);
-    expect(result.error.value?.message).toBe("预览失败");
+  it("preview 错误处理", async () => {
+    mockBridge.file.preview.mockRejectedValueOnce(new Error("预览失败"));
+    const { preview, error } = useFilePreview();
+    await preview("https://example.com/fail");
+    expect(error.value?.message).toBe("预览失败");
   });
 });
