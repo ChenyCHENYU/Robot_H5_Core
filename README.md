@@ -10,6 +10,8 @@
 pnpm add @robot/h5-core
 ```
 
+> **前置依赖**：项目需安装 `vue@^3.3.0`（peerDependency）
+
 ## 快速开始
 
 ```ts
@@ -51,7 +53,7 @@ const { position, getCurrentPosition } = useLocation();
 | `useLocation` | GPS 单次/持续定位 | [README](src/hooks/useLocation/README.md) |
 | `useQrScanner` | 二维码/条形码扫描 | [README](src/hooks/useQrScanner/README.md) |
 | `useNfc` | NFC 读写 | [README](src/hooks/useNfc/README.md) |
-| `useFileUpload` | 分片上传 + 进度条 | [README](src/hooks/useFileUpload/README.md) |
+| `useFileUpload` | 分片上传 + 进度条 + 自动重试 | [README](src/hooks/useFileUpload/README.md) |
 | `useFilePreview` | PDF/Office/图片预览 | [README](src/hooks/useFilePreview/README.md) |
 | `useSignature` | Canvas 手写签名 | [README](src/hooks/useSignature/README.md) |
 | `useAudioRecorder` | 录音 + 暂停恢复 | [README](src/hooks/useAudioRecorder/README.md) |
@@ -59,8 +61,8 @@ const { position, getCurrentPosition } = useLocation();
 | `useBluetooth` | 蓝牙设备连接 | [README](src/hooks/useBluetooth/README.md) |
 | `useOfflineStorage` | IndexedDB 离线存储 | [README](src/hooks/useOfflineStorage/README.md) |
 | `usePushNotification` | 推送通知 | [README](src/hooks/usePushNotification/README.md) |
-| `useWatermark` | 图片水印 | [README](src/hooks/useWatermark/README.md) |
-| `usePermission` | 系统权限查询/请求 | [README](src/hooks/usePermission/README.md) |
+| `useWatermark` | 图片水印（保留原图格式） | [README](src/hooks/useWatermark/README.md) |
+| `usePermission` | 系统权限查询/请求/监听 | [README](src/hooks/usePermission/README.md) |
 
 ### Bridge 适配器
 
@@ -113,7 +115,23 @@ import { extendHook } from "@robot/h5-core";
 extendHook("useCamera", {
   after: async (file) => { await uploadToOss(file); return file; },
 });
+
+// 热更新时重置 Bridge 实例
+import { resetBridge, createBridge } from "@robot/h5-core";
+resetBridge();
+await createBridge("wechat");
 ```
+
+---
+
+## NPM 发布
+
+```bash
+pnpm run build        # 构建 ESM + 类型声明
+npm publish           # 发布到 npm registry
+```
+
+发布产物仅包含 `dist/` 目录（由 `package.json.files` 控制）。
 
 ---
 
