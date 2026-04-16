@@ -4,3 +4,8 @@ coverage/
 *.local
 .DS_Store
 *.tgz
+nul
+*.log
+.env*
+.idea/
+.vscode/

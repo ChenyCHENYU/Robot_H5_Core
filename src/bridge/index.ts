@@ -37,6 +37,13 @@ export async function createBridge(
 }
 
 /**
+ * 重置 Bridge 实例（热更新 / 测试切换平台时使用）
+ */
+export function resetBridge(): void {
+  bridgeInstance = null;
+}
+
+/**
  * 在 Composition API 中获取 Bridge 实例
  *
  * @example

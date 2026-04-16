@@ -1,79 +1,20 @@
-import type { BridgeAdapter } from "../types";
+import { createStubAdapter } from "./stub";
 
 /**
  * 钉钉适配器（桩实现）
  * 需引入 dingtalk-jsapi 后补充具体实现
+ * 注：钉钉平台不支持蓝牙和 NFC
  */
-const dingtalkBridge: BridgeAdapter = {
-  platform: "dingtalk",
+const adapter = createStubAdapter("dingtalk", "dingtalk-jsapi");
 
-  camera: {
-    async capture() {
-      throw new Error(
-        "[h5-core] DingTalk camera: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
+// 钉钉明确不支持的能力，覆盖提示信息
+adapter.bluetooth = {
+  connect: () => {
+    throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
   },
-
-  scanner: {
-    async scan() {
-      throw new Error(
-        "[h5-core] DingTalk scanner: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
-  },
-
-  location: {
-    async getCurrent() {
-      throw new Error(
-        "[h5-core] DingTalk location: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
-    watchPosition() {
-      throw new Error(
-        "[h5-core] DingTalk watchPosition: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
-  },
-
-  nfc: {
-    async read() {
-      throw new Error("[h5-core] DingTalk NFC: 请引入 dingtalk-jsapi 后实现");
-    },
-    async write() {
-      throw new Error("[h5-core] DingTalk NFC: 请引入 dingtalk-jsapi 后实现");
-    },
-  },
-
-  bluetooth: {
-    async connect() {
-      throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
-    },
-    async disconnect() {
-      throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
-    },
-  },
-
-  file: {
-    async preview() {
-      throw new Error(
-        "[h5-core] DingTalk file preview: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
-  },
-
-  notification: {
-    async register() {
-      throw new Error(
-        "[h5-core] DingTalk notification: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
-    onMessage() {
-      throw new Error(
-        "[h5-core] DingTalk notification: 请引入 dingtalk-jsapi 后实现",
-      );
-    },
+  disconnect: () => {
+    throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
   },
 };
 
-export default dingtalkBridge;
+export default adapter;
