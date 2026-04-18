@@ -68,10 +68,10 @@ const { position, getCurrentPosition } = useLocation();
 
 | 适配器 | 环境 | 状态 |
 |--------|------|------|
-| `BrowserBridge` | 浏览器降级 | ✅ 已实现 |
-| `NativeBridge` | APP WebView | 🔧 桩实现 |
-| `DingtalkBridge` | 钉钉 | 🔧 桩实现 |
-| `WechatBridge` | 微信/企微 | 🔧 桩实现 |
+| `BrowserBridge` | 浏览器降级 | ✅ 完整实现 |
+| `NativeBridge` | APP WebView | ✅ 降级可用，项目侧通过 `overrides` 注入原生 SDK |
+| `DingtalkBridge` | 钉钉 | ✅ 降级可用，项目侧通过 `overrides` 注入 dingtalk-jsapi |
+| `WechatBridge` | 微信/企微 | ✅ 降级可用，项目侧通过 `overrides` 注入 weixin-js-sdk |
 
 ### Utils 工具函数
 
@@ -104,6 +104,40 @@ const { position, getCurrentPosition } = useLocation();
 ---
 
 ## 项目侧扩展
+
+```ts
+// SDK 能力注入（推荐方式 — 通过配置将平台 SDK 能力注入包内）
+import { defineAppConfig } from "@robot/h5-core";
+import dd from "dingtalk-jsapi";
+
+await defineAppConfig(app, {
+  bridge: {
+    platform: "dingtalk",
+    dingtalk: { corpId: "ding_xxx" },
+    overrides: {
+      scanner: {
+        async scan() {
+          const { text } = await dd.biz.util.scan({ type: "qrCode" });
+          return text;
+        },
+      },
+      location: {
+        async getCurrent() {
+          const pos = await dd.device.geolocation.get({ targetAccuracy: 200 });
+          return { longitude: pos.longitude, latitude: pos.latitude, accuracy: pos.accuracy, timestamp: Date.now() };
+        },
+        watchPosition: (cb) => { /* ... */ return () => {}; },
+      },
+      camera: {
+        async capture() {
+          const { filePath } = await dd.biz.util.uploadImage({ compression: true });
+          return fetch(filePath).then(r => r.blob()).then(b => new File([b], "photo.jpg"));
+        },
+      },
+    },
+  },
+});
+```
 
 ```ts
 // 注册自定义 Bridge 适配器

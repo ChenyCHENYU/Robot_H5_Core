@@ -5,6 +5,7 @@ export {
   useBridge,
   resetBridge,
   registerAdapter,
+  mergeAdapter,
 } from "./bridge";
 export { extendHook } from "./hooks/extend";
 

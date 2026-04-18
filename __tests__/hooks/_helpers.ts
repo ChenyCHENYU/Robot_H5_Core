@@ -2,7 +2,25 @@
  * 测试辅助：创建 Mock Bridge 和 Mock App Config
  */
 import { vi } from "vitest";
+import { createApp, defineComponent } from "vue";
 import type { BridgeAdapter } from "../../src/bridge/types";
+
+/**
+ * 在 Vue 组件上下文中运行 composable，使 onUnmounted 等生命周期正常注册
+ */
+export function withSetup<T>(composable: () => T): { result: T; unmount: () => void } {
+  let result!: T;
+  const app = createApp(defineComponent({
+    setup() {
+      result = composable();
+      return () => null;
+    },
+    render: () => null,
+  }));
+  const root = document.createElement("div");
+  app.mount(root);
+  return { result, unmount: () => app.unmount() };
+}
 
 export function createMockBridge(): BridgeAdapter {
   return {

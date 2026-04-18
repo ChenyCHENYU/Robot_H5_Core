@@ -69,6 +69,7 @@ export function useFileUpload(
       const { chunkSize: rawChunkSize } = opts;
       const chunkSize = rawChunkSize!;
       const totalChunks = Math.ceil(targetFile.size / chunkSize);
+      const fileId = `${targetFile.name}-${targetFile.size}-${Date.now()}`;
       let result: any = null;
 
       for (let i = 0; i < totalChunks; i++) {
@@ -81,6 +82,7 @@ export function useFileUpload(
         formData.append("chunk", String(i));
         formData.append("chunks", String(totalChunks));
         formData.append("filename", targetFile.name);
+        formData.append("fileId", fileId);
 
         // 单片重试逻辑
         const maxRetries = opts.maxRetries!;

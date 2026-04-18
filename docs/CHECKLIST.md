@@ -13,10 +13,11 @@
 ## Bridge 适配器
 
 - ✅ BrowserBridge（浏览器降级）
-- ⬜ NativeBridge（APP WebView）— 桩实现，待原生协议
-- ⬜ DingtalkBridge（钉钉）— 桩实现，待 dingtalk-jsapi
-- ⬜ WechatBridge（微信/企微）— 桩实现，待 weixin-js-sdk
-- ✅ createStubAdapter 工厂（消除桩代码重复）
+- ✅ NativeBridge（APP WebView）— 降级模式，项目侧通过 overrides 注入原生 SDK
+- ✅ DingtalkBridge（钉钉）— 降级模式，项目侧通过 overrides 注入 dingtalk-jsapi
+- ✅ WechatBridge（微信/企微）— 降级模式，项目侧通过 overrides 注入 weixin-js-sdk
+- ✅ createFallbackAdapter 工厂（未覆盖能力自动降级到浏览器）
+- ✅ mergeAdapter 合并工具（项目侧覆盖 + 基础适配器合并）
 
 ## Hooks
 
@@ -67,3 +68,5 @@
 - ✅ hooks/usePermission.test.ts
 - ✅ hooks/useWatermark.test.ts
 - ✅ hooks/useOfflineStorage.test.ts
+- ✅ hooks/useAudioRecorder.test.ts
+- ✅ hooks/useVideoRecorder.test.ts

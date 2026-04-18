@@ -4,6 +4,7 @@ export type {
   BluetoothDeviceInfo,
   PushMessage,
   BridgeAdapter,
+  BridgeAdapterOverrides,
   CameraOptions,
   ScanOptions,
 } from "../bridge/types";

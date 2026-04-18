@@ -74,3 +74,14 @@ export interface PushMessage {
   data?: Record<string, any>;
   timestamp: number;
 }
+
+/** 适配器能力覆盖类型 — 项目侧可部分覆盖某个适配器的能力实现 */
+export type BridgeAdapterOverrides = {
+  camera?: Partial<BridgeAdapter["camera"]>;
+  scanner?: Partial<BridgeAdapter["scanner"]>;
+  location?: Partial<BridgeAdapter["location"]>;
+  nfc?: Partial<BridgeAdapter["nfc"]>;
+  bluetooth?: Partial<BridgeAdapter["bluetooth"]>;
+  file?: Partial<BridgeAdapter["file"]>;
+  notification?: Partial<BridgeAdapter["notification"]>;
+};

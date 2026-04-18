@@ -98,19 +98,26 @@ export function usePermission(): UsePermissionReturn {
   }
 
   function watch(name: PermissionName): () => void {
-    let unwatch = () => {};
+    let cleanup: (() => void) | null = null;
+    let disposed = false;
+
     navigator.permissions
       .query({ name: name as any })
       .then((status) => {
+        if (disposed) return;
         const handler = () => {
           state.value = status.state;
         };
         status.addEventListener("change", handler);
         state.value = status.state;
-        unwatch = () => status.removeEventListener("change", handler);
+        cleanup = () => status.removeEventListener("change", handler);
       })
       .catch(() => {});
-    return () => unwatch();
+
+    return () => {
+      disposed = true;
+      cleanup?.();
+    };
   }
 
   return { state, loading, error, query, request, watch };

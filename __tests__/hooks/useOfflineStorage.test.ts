@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { withSetup } from "./_helpers";
 
 import { useOfflineStorage } from "../../src/hooks/useOfflineStorage";
 
@@ -8,10 +9,9 @@ function createMockIDB() {
 
   const mockObjectStore = {
     get: vi.fn().mockImplementation((key: string) => ({
-      onsuccess: null as any,
-      onerror: null as any,
       result: store.get(key) ?? null,
       set onsuccess(fn: any) { setTimeout(() => fn(), 0); },
+      set onerror(_fn: any) { /* noop */ },
     })),
     put: vi.fn().mockImplementation((value: any, key: string) => {
       store.set(key, value);
@@ -72,24 +72,24 @@ describe("useOfflineStorage", () => {
 
   it("初始状态正确", () => {
     createMockIDB();
-    const { loading, error } = useOfflineStorage();
+    const { result: { loading, error } } = withSetup(() => useOfflineStorage());
     expect(loading.value).toBe(false);
     expect(error.value).toBeNull();
   });
 
   it("IndexedDB 不可用时抛出错误", async () => {
     vi.stubGlobal("indexedDB", undefined);
-    const { get, error } = useOfflineStorage();
+    const { result: { get, error } } = withSetup(() => useOfflineStorage());
     await get("key");
     expect(error.value?.message).toContain("IndexedDB 不可用");
   });
 
   it("支持自定义 dbName 和 storeName", () => {
     createMockIDB();
-    const { loading } = useOfflineStorage({
+    const { result: { loading } } = withSetup(() => useOfflineStorage({
       dbName: "my-db",
       storeName: "my-store",
-    });
+    }));
     expect(loading.value).toBe(false);
   });
 });

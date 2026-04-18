@@ -1,3 +1,5 @@
+import type { BridgeAdapterOverrides } from "../bridge/types";
+
 /**
  * 全局配置类型定义
  */
@@ -23,6 +25,8 @@ export interface BridgeConfig {
   dingtalk?: { corpId: string };
   /** 微信配置 */
   wechat?: { appId: string; jsApiList?: string[] };
+  /** 项目侧 SDK 能力覆盖 — 未提供的能力自动降级到浏览器实现 */
+  overrides?: BridgeAdapterOverrides;
 }
 
 export interface UploadConfig {

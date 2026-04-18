@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { withSetup } from "./_helpers";
 
 import { useSignature } from "../../src/hooks/useSignature";
 
@@ -40,12 +41,12 @@ describe("useSignature", () => {
   });
 
   it("初始状态 isEmpty 为 true", () => {
-    const { isEmpty } = useSignature();
+    const { result: { isEmpty } } = withSetup(() => useSignature());
     expect(isEmpty.value).toBe(true);
   });
 
   it("bindCanvas 绑定 canvas 元素", () => {
-    const { bindCanvas } = useSignature();
+    const { result: { bindCanvas } } = withSetup(() => useSignature());
     const { canvas } = createMockCanvas();
     bindCanvas(canvas);
     expect(canvas.getContext).toHaveBeenCalledWith("2d");
@@ -53,7 +54,7 @@ describe("useSignature", () => {
   });
 
   it("clear 重置状态", () => {
-    const { bindCanvas, clear, isEmpty } = useSignature();
+    const { result: { bindCanvas, clear, isEmpty } } = withSetup(() => useSignature());
     const { canvas } = createMockCanvas();
     bindCanvas(canvas);
     clear();
@@ -61,13 +62,13 @@ describe("useSignature", () => {
   });
 
   it("save 空签名返回 null", async () => {
-    const { save } = useSignature();
+    const { result: { save } } = withSetup(() => useSignature());
     const result = await save();
     expect(result).toBeNull();
   });
 
   it("undo 撤销最后一笔", () => {
-    const { bindCanvas, undo, isEmpty } = useSignature();
+    const { result: { bindCanvas, undo, isEmpty } } = withSetup(() => useSignature());
     const { canvas } = createMockCanvas();
     bindCanvas(canvas);
     undo();
@@ -75,11 +76,11 @@ describe("useSignature", () => {
   });
 
   it("支持自定义选项", () => {
-    const { isEmpty } = useSignature({
+    const { result: { isEmpty } } = withSetup(() => useSignature({
       lineWidth: 5,
       strokeColor: "#ff0000",
       backgroundColor: "#f5f5f5",
-    });
+    }));
     expect(isEmpty.value).toBe(true);
   });
 });

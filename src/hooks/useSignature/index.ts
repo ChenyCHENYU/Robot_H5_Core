@@ -154,7 +154,8 @@ export function useSignature(options?: UseSignatureOptions): UseSignatureReturn 
         canvas!.toBlob(resolve, type, quality),
       );
       if (!blob) return null;
-      const file = new File([blob], `signature-${Date.now()}.png`, { type });
+      const ext = type.split("/")[1] || "png";
+      const file = new File([blob], `signature-${Date.now()}.${ext}`, { type });
       const result = await runAfterExtensions("useSignature", file);
       return result;
     } catch {

@@ -86,10 +86,10 @@
 
 | #   | 适配器           | 环境        | 状态 |
 | --- | ---------------- | ----------- | ---- |
-| 1   | `NativeBridge`   | APP WebView | 🔧 桩实现 |
-| 2   | `DingtalkBridge` | 钉钉        | 🔧 桩实现 |
-| 3   | `WechatBridge`   | 微信/企微   | 🔧 桩实现 |
-| 4   | `BrowserBridge`  | 浏览器降级  | ✅   |
+| 1   | `BrowserBridge`  | 浏览器降级  | ✅ 完整实现 |
+| 2   | `NativeBridge`   | APP WebView | ✅ 降级可用，overrides 注入 |
+| 3   | `DingtalkBridge` | 钉钉        | ✅ 降级可用，overrides 注入 |
+| 4   | `WechatBridge`   | 微信/企微   | ✅ 降级可用，overrides 注入 |
 
 ### Utils 工具函数
 
@@ -135,8 +135,7 @@
 │   │
 │   ├── hooks/                 # ===== 组合函数层（厚） =====
 │   │   ├── useCamera/
-│   │   │   ├── index.ts
-│   │   │   └── types.ts
+│   │   │   └── index.ts
 │   │   ├── useLocation/
 │   │   ├── useQrScanner/
 │   │   ├── useNfc/
@@ -159,9 +158,10 @@
 │   │   │   ├── native.ts
 │   │   │   ├── dingtalk.ts
 │   │   │   ├── wechat.ts
-│   │   │   └── browser.ts
+│   │   │   ├── browser.ts
+│   │   │   └── stub.ts            # createFallbackAdapter + mergeAdapter
 │   │   ├── registry.ts        # 适配器注册表（支持项目扩展）
-│   │   └── index.ts           # createBridge() 工厂
+│   │   └── index.ts           # createBridge() 工厂（支持 overrides 参数）
 │   │
 │   ├── utils/                 # ===== 纯函数工具 =====
 │   │   ├── image.ts
@@ -173,9 +173,7 @@
 │   │   └── index.ts
 │   │
 │   └── types/                 # ===== 共享类型 =====
-│       ├── bridge.d.ts
-│       ├── hooks.d.ts
-│       └── index.d.ts
+│       └── index.ts
 │
 ├── __tests__/                 # ===== 测试 =====
 │   ├── config/
@@ -183,9 +181,11 @@
 │   ├── bridge/
 │   └── utils/
 │
-└── playground/                # 开发调试 Demo
-    ├── vite.config.ts
-    └── src/App.vue
+└── docs/                      # 设计文档
+    ├── DESIGN.md
+    ├── CHECKLIST.md
+    ├── ROADMAP.md
+    └── REQUIREMENTS.md
 ```
 
 ---
@@ -278,6 +278,8 @@ export interface BridgeConfig {
   nativeUA?: string;
   dingtalk?: { corpId: string };
   wechat?: { appId: string; jsApiList?: string[] };
+  /** 项目侧 SDK 能力覆盖：注入平台特定 API 实现，未覆盖的能力自动降级到浏览器 */
+  overrides?: BridgeAdapterOverrides;
 }
 ```
 

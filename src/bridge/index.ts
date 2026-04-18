@@ -1,12 +1,15 @@
 import { inject, type InjectionKey } from "vue";
 import { detectPlatform } from "./detector";
 import { resolveAdapter } from "./registry";
-import type { BridgeAdapter } from "./types";
+import { mergeAdapter } from "./adapters/stub";
+import type { BridgeAdapter, BridgeAdapterOverrides } from "./types";
 
 export { registerAdapter, getRegisteredAdapters } from "./registry";
 export { detectPlatform } from "./detector";
+export { mergeAdapter } from "./adapters/stub";
 export type {
   BridgeAdapter,
+  BridgeAdapterOverrides,
   CameraOptions,
   ScanOptions,
   Coordinates,
@@ -26,13 +29,15 @@ let bridgeInstance: BridgeAdapter | null = null;
 export async function createBridge(
   platform?: string,
   nativeUA?: string,
+  overrides?: BridgeAdapterOverrides,
 ): Promise<BridgeAdapter> {
   if (bridgeInstance) return bridgeInstance;
 
   const resolved =
     !platform || platform === "auto" ? detectPlatform(nativeUA) : platform;
 
-  bridgeInstance = await resolveAdapter(resolved);
+  const base = await resolveAdapter(resolved);
+  bridgeInstance = overrides ? mergeAdapter(base, overrides) : base;
   return bridgeInstance;
 }
 

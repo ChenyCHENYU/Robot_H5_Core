@@ -1,20 +1,8 @@
-import { createStubAdapter } from "./stub";
+import { createFallbackAdapter } from "./stub";
 
 /**
- * 钉钉适配器（桩实现）
- * 需引入 dingtalk-jsapi 后补充具体实现
- * 注：钉钉平台不支持蓝牙和 NFC
+ * 钉钉适配器 — 基于浏览器降级
+ * 项目侧通过 defineAppConfig({ bridge: { overrides } }) 注入 dingtalk-jsapi 实现
+ * 未覆盖的能力自动使用浏览器降级方案
  */
-const adapter = createStubAdapter("dingtalk", "dingtalk-jsapi");
-
-// 钉钉明确不支持的能力，覆盖提示信息
-adapter.bluetooth = {
-  connect: () => {
-    throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
-  },
-  disconnect: () => {
-    throw new Error("[h5-core] DingTalk bluetooth: 暂不支持");
-  },
-};
-
-export default adapter;
+export default createFallbackAdapter("dingtalk");

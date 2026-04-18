@@ -1,38 +1,35 @@
-import type { BridgeAdapter } from "../types";
+import type { BridgeAdapter, BridgeAdapterOverrides } from "../types";
+import browserBridge from "./browser";
 
 /**
- * 创建桩适配器 — 未实现的方法统一抛出提示性错误
+ * 创建降级适配器 — 未覆盖的能力自动降级到浏览器实现
  * @param platform 平台标识
- * @param sdkHint 需引入的 SDK 名称（如 "dingtalk-jsapi"），留空表示"暂不支持"
+ * @param overrides 项目侧 SDK 实现覆盖
  */
-export function createStubAdapter(
+export function createFallbackAdapter(
   platform: string,
-  sdkHint?: string,
+  overrides?: BridgeAdapterOverrides,
 ): BridgeAdapter {
-  const notSupported = (capability: string) => () => {
-    const hint = sdkHint
-      ? `请引入 ${sdkHint} 后实现`
-      : "暂不支持";
-    throw new Error(`[h5-core] ${platform} ${capability}: ${hint}`);
-  };
+  const base: BridgeAdapter = { ...browserBridge, platform };
+  if (!overrides) return base;
+  return mergeAdapter(base, overrides);
+}
 
+/**
+ * 合并适配器覆盖 — 将项目侧实现合并到基础适配器上
+ */
+export function mergeAdapter(
+  base: BridgeAdapter,
+  overrides: BridgeAdapterOverrides,
+): BridgeAdapter {
   return {
-    platform,
-    camera: { capture: notSupported("camera") },
-    scanner: { scan: notSupported("scanner") },
-    location: {
-      getCurrent: notSupported("location"),
-      watchPosition: notSupported("watchPosition"),
-    },
-    nfc: { read: notSupported("NFC"), write: notSupported("NFC") },
-    bluetooth: {
-      connect: notSupported("bluetooth"),
-      disconnect: notSupported("bluetooth"),
-    },
-    file: { preview: notSupported("file preview") },
-    notification: {
-      register: notSupported("notification"),
-      onMessage: notSupported("notification"),
-    },
+    platform: base.platform,
+    camera: { ...base.camera, ...overrides.camera },
+    scanner: { ...base.scanner, ...overrides.scanner },
+    location: { ...base.location, ...overrides.location },
+    nfc: { ...base.nfc, ...overrides.nfc },
+    bluetooth: { ...base.bluetooth, ...overrides.bluetooth },
+    file: { ...base.file, ...overrides.file },
+    notification: { ...base.notification, ...overrides.notification },
   };
 }

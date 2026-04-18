@@ -54,101 +54,48 @@ export function useOfflineStorage(
     });
   }
 
-  async function get<T = any>(key: string): Promise<T | null> {
+  async function withTransaction<T>(
+    mode: IDBTransactionMode,
+    fn: (store: IDBObjectStore) => IDBRequest,
+    fallback?: T,
+  ): Promise<T> {
     loading.value = true;
     error.value = null;
     try {
       const database = await getDB();
-      return new Promise((resolve, reject) => {
-        const tx = database.transaction(opts.storeName!, "readonly");
+      return new Promise<T>((resolve, reject) => {
+        const tx = database.transaction(opts.storeName!, mode);
         const store = tx.objectStore(opts.storeName!);
-        const request = store.get(key);
-        request.onsuccess = () => resolve(request.result ?? null);
+        const request = fn(store);
+        request.onsuccess = () => resolve(request.result ?? fallback as T);
         request.onerror = () => reject(request.error);
       });
     } catch (e) {
       error.value = e as Error;
-      return null;
+      return fallback as T;
     } finally {
       loading.value = false;
     }
+  }
+
+  async function get<T = any>(key: string): Promise<T | null> {
+    return withTransaction<T | null>("readonly", (store) => store.get(key), null);
   }
 
   async function set(key: string, value: any): Promise<void> {
-    loading.value = true;
-    error.value = null;
-    try {
-      const database = await getDB();
-      return new Promise((resolve, reject) => {
-        const tx = database.transaction(opts.storeName!, "readwrite");
-        const store = tx.objectStore(opts.storeName!);
-        const request = store.put(value, key);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      error.value = e as Error;
-    } finally {
-      loading.value = false;
-    }
+    await withTransaction<void>("readwrite", (store) => store.put(value, key));
   }
 
   async function remove(key: string): Promise<void> {
-    loading.value = true;
-    error.value = null;
-    try {
-      const database = await getDB();
-      return new Promise((resolve, reject) => {
-        const tx = database.transaction(opts.storeName!, "readwrite");
-        const store = tx.objectStore(opts.storeName!);
-        const request = store.delete(key);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      error.value = e as Error;
-    } finally {
-      loading.value = false;
-    }
+    await withTransaction<void>("readwrite", (store) => store.delete(key));
   }
 
   async function clear(): Promise<void> {
-    loading.value = true;
-    error.value = null;
-    try {
-      const database = await getDB();
-      return new Promise((resolve, reject) => {
-        const tx = database.transaction(opts.storeName!, "readwrite");
-        const store = tx.objectStore(opts.storeName!);
-        const request = store.clear();
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      error.value = e as Error;
-    } finally {
-      loading.value = false;
-    }
+    await withTransaction<void>("readwrite", (store) => store.clear());
   }
 
   async function keys(): Promise<string[]> {
-    loading.value = true;
-    error.value = null;
-    try {
-      const database = await getDB();
-      return new Promise((resolve, reject) => {
-        const tx = database.transaction(opts.storeName!, "readonly");
-        const store = tx.objectStore(opts.storeName!);
-        const request = store.getAllKeys();
-        request.onsuccess = () => resolve(request.result as string[]);
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) {
-      error.value = e as Error;
-      return [];
-    } finally {
-      loading.value = false;
-    }
+    return withTransaction<string[]>("readonly", (store) => store.getAllKeys() as IDBRequest<string[]>, []);
   }
 
   function close(): void {

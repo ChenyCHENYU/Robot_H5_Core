@@ -54,6 +54,7 @@ export async function defineAppConfig(
   const bridge = await createBridge(
     merged.bridge?.platform,
     merged.bridge?.nativeUA,
+    merged.bridge?.overrides,
   );
   app.provide(BRIDGE_KEY, bridge);
 }
