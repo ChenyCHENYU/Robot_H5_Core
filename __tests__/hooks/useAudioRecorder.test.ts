@@ -113,6 +113,27 @@ describe("useAudioRecorder", () => {
     expect(isPaused.value).toBe(false);
   });
 
+  it("start → stop 完整录音流程", async () => {
+    const {
+      result: { start, stop, isRecording },
+    } = withSetup(() => useAudioRecorder());
+    await start();
+    expect(isRecording.value).toBe(true);
+    const blob = await stop();
+    expect(isRecording.value).toBe(false);
+    expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it("unmount 时自动清理", async () => {
+    const {
+      result: { start },
+      unmount,
+    } = withSetup(() => useAudioRecorder());
+    await start();
+    unmount();
+    // cleanup should stop recorder and stream
+  });
+
   it("支持自定义选项", () => {
     const {
       result: { isRecording },

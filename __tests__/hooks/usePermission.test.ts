@@ -90,4 +90,68 @@ describe("usePermission", () => {
     expect(result).toBe("denied");
     expect(error.value).toBeDefined();
   });
+
+  it("request clipboard-read 走 query 降级路径", async () => {
+    mockPermissionStatus.state = "granted";
+    const { request } = usePermission();
+    const result = await request("clipboard-read");
+    expect(result).toBe(true);
+  });
+
+  it("request clipboard-read 未授权返回 false", async () => {
+    mockPermissionStatus.state = "denied";
+    const { request } = usePermission();
+    const result = await request("clipboard-read");
+    expect(result).toBe(false);
+  });
+
+  it("watch 监听权限变化并返回取消函数", async () => {
+    const mockStatus = {
+      state: "granted" as PermissionState,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+    (navigator.permissions.query as any).mockResolvedValueOnce(mockStatus);
+
+    const { watch, state } = usePermission();
+    const stopWatch = watch("camera");
+
+    // 等待异步 query 完成
+    await new Promise((r) => setTimeout(r, 0));
+    expect(state.value).toBe("granted");
+    expect(mockStatus.addEventListener).toHaveBeenCalledWith("change", expect.any(Function));
+
+    // 取消监听
+    stopWatch();
+    expect(mockStatus.removeEventListener).toHaveBeenCalled();
+  });
+
+  it("watch query 失败时静默降级", async () => {
+    (navigator.permissions.query as any).mockRejectedValueOnce(new Error("不支持"));
+    const { watch } = usePermission();
+    const stopWatch = watch("camera");
+    await new Promise((r) => setTimeout(r, 0));
+    // 不应抛出异常
+    stopWatch();
+  });
+
+  it("geolocation 拒绝时返回 false", async () => {
+    (navigator.geolocation.getCurrentPosition as any).mockImplementationOnce(
+      (_success: any, error: any) => {
+        error({ code: 1, message: "PERMISSION_DENIED" });
+      },
+    );
+    const { request, state } = usePermission();
+    const result = await request("geolocation");
+    expect(result).toBe(false);
+    expect(state.value).toBe("denied");
+  });
+
+  it("notifications 拒绝时返回 false", async () => {
+    (Notification.requestPermission as any).mockResolvedValueOnce("denied");
+    const { request, state } = usePermission();
+    const result = await request("notifications");
+    expect(result).toBe(false);
+    expect(state.value).toBe("denied");
+  });
 });

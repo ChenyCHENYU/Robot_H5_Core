@@ -5,6 +5,7 @@ import type {
   NFCData,
   BluetoothDeviceInfo,
   ScanOptions,
+  LocationQueryOptions,
 } from "../types";
 
 /**
@@ -54,7 +55,7 @@ const browserBridge: BridgeAdapter = {
   },
 
   location: {
-    getCurrent(options?: { timeout?: number; enableHighAccuracy?: boolean }): Promise<Coordinates> {
+    getCurrent(options?: LocationQueryOptions): Promise<Coordinates> {
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
           return reject(new Error("[h5-core] 浏览器不支持 Geolocation"));
@@ -79,7 +80,7 @@ const browserBridge: BridgeAdapter = {
 
     watchPosition(
       callback: (pos: Coordinates) => void,
-      options?: { enableHighAccuracy?: boolean },
+      options?: LocationQueryOptions,
     ): () => void {
       const id = navigator.geolocation.watchPosition(
         (pos) =>

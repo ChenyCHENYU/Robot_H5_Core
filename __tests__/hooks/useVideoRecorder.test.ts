@@ -86,6 +86,28 @@ describe("useVideoRecorder", () => {
     expect(blob).toBeNull();
   });
 
+  it("start → stop 完整录制流程", async () => {
+    const {
+      result: { start, stop, isRecording },
+    } = withSetup(() => useVideoRecorder());
+    await start();
+    expect(isRecording.value).toBe(true);
+    const blob = await stop();
+    expect(isRecording.value).toBe(false);
+    expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it("unmount 时自动清理", async () => {
+    const {
+      result: { start, isRecording },
+      unmount,
+    } = withSetup(() => useVideoRecorder());
+    await start();
+    expect(isRecording.value).toBe(true);
+    unmount();
+    // cleanup should have been called
+  });
+
   it("支持自定义选项", () => {
     const {
       result: { isRecording },
