@@ -1,24 +1,46 @@
 # useLocation
 
-GPS 单次/持续定位 Hook，自动坐标系转换。
+GPS 单次/持续定位 Hook。
 
-## 用法
+## 基本用法
 
 ```ts
-import { useLocation } from "@robot/h5-core/hooks";
+import { useLocation } from "@robot/h5-core";
 
-const { position, loading, error, getCurrentPosition, watchPosition, stopWatch } = useLocation({
-  timeout: 10000,
+const { position, loading, error, getCurrentPosition } = useLocation();
+
+const pos = await getCurrentPosition();
+// pos → { longitude, latitude, altitude?, accuracy, timestamp }
+```
+
+## 高级用法
+
+```ts
+// 持续定位（实时追踪）
+const { position, watchPosition, stopWatch } = useLocation({
+  timeout: 15000,
   enableHighAccuracy: true,
 });
 
-// 单次定位
-const pos = await getCurrentPosition();
-
-// 持续定位
 watchPosition();
-// 停止监听
+// position.value 实时更新
+// 停止追踪
 stopWatch();
+
+// 配合坐标转换
+import { gcj02ToWgs84 } from "@robot/h5-core";
+const pos = await getCurrentPosition();
+if (pos) {
+  const wgs = gcj02ToWgs84(pos.longitude, pos.latitude);
+}
+```
+
+## 全局配置
+
+```ts
+defineAppConfig(app, {
+  location: { coordType: "gcj02", timeout: 10000 },
+});
 ```
 
 ## API
@@ -32,22 +54,9 @@ stopWatch();
 | `watchPosition()` | `() => void` | 开始持续定位 |
 | `stopWatch()` | `() => void` | 停止持续定位 |
 
-## 配置
-
-```ts
-defineAppConfig(app, {
-  location: { coordType: "gcj02", timeout: 10000 },
-});
-```
-
 ## 注意事项
 
-- **HTTPS 必需**：Geolocation API 要求 HTTPS（localhost 除外）
-- **坐标系**：中国大陆使用 GCJ-02，海外使用 WGS-84，可用 `coord.ts` 工具转换
-- **组件卸载时自动停止** watchPosition，无需手动清理
-- **iOS Safari**：首次定位需要用户授权，可配合 `usePermission` 预请求
-
-## 测试说明
-
-- 单元测试通过 Mock Bridge 覆盖核心流程
-- **真机测试建议**：GPS 定位精度受设备和环境影响，室内可能定位失败或精度低，建议在室外环境验证 `enableHighAccuracy` 模式
+- HTTPS 必需
+- 中国大陆使用 GCJ-02 坐标系，海外使用 WGS-84
+- 组件卸载时自动停止 watchPosition
+- iOS Safari 首次定位需用户授权，可配合 `usePermission` 预请求

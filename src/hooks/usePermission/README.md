@@ -1,19 +1,52 @@
 # usePermission
 
-系统权限查询/请求 Hook — 统一封装浏览器权限 API。
+权限查询与请求 Hook — 统一管理设备/浏览器权限状态。
 
-## 用法
+## 基本用法
 
 ```ts
-import { usePermission } from "@robot/h5-core/hooks";
+import { usePermission } from "@robot/h5-core";
 
 const { state, loading, error, query, request } = usePermission();
 
-// 查询权限状态
-const status = await query("camera"); // 'granted' | 'denied' | 'prompt'
+const status = await query("camera");
+// status → 'granted' | 'denied' | 'prompt'
 
-// 请求权限（会触发浏览器授权弹窗）
 const granted = await request("camera");
+// granted → true/false
+```
+
+## 高级用法
+
+```ts
+// 拍照前先请求权限
+import { usePermission, useCamera } from "@robot/h5-core";
+
+const { state, request, watch } = usePermission();
+const { capture } = useCamera();
+
+// 实时监听权限变化（返回取消函数）
+const stopWatch = watch("camera");
+// state.value 会随浏览器权限设置实时更新
+// 不需要时调用 stopWatch() 取消监听
+
+// 条件拍照
+async function takePhoto() {
+  const granted = await request("camera");
+  if (!granted) {
+    alert("请在系统设置中允许相机权限");
+    return;
+  }
+  return await capture();
+}
+
+// 一次检查多个权限
+async function checkAllPermissions() {
+  const cam = await request("camera");
+  const mic = await request("microphone");
+  const loc = await request("geolocation");
+  return { cam, mic, loc };
+}
 ```
 
 ## API
@@ -21,30 +54,15 @@ const granted = await request("camera");
 | 返回值 | 类型 | 说明 |
 |--------|------|------|
 | `state` | `Ref<PermissionState \| null>` | 当前权限状态 |
-| `loading` | `Ref<boolean>` | 查询/请求中 |
+| `loading` | `Ref<boolean>` | 查询中 |
 | `error` | `Ref<Error \| null>` | 错误信息 |
-| `query()` | `(name) => Promise<PermissionState>` | 查询权限状态 |
-| `request()` | `(name) => Promise<boolean>` | 请求权限 |
-
-## 支持的权限类型
-
-| 权限名 | 请求方式 | 说明 |
-|--------|----------|------|
-| `camera` | getUserMedia({video}) | 摄像头 |
-| `microphone` | getUserMedia({audio}) | 麦克风 |
-| `geolocation` | getCurrentPosition() | 地理位置 |
-| `notifications` | Notification.requestPermission() | 通知 |
-| `clipboard-read` | Permissions API query | 剪贴板读取 |
-| `clipboard-write` | Permissions API query | 剪贴板写入 |
+| `query()` | `(name: string) => Promise<PermissionState>` | 查询权限状态 |
+| `request()` | `(name: string) => Promise<boolean>` | 请求权限 |
+| `watch()` | `(name: PermissionName) => () => void` | 监听权限状态变化，返回取消函数 |
 
 ## 注意事项
 
-- **clipboard-read/write**：仅支持查询（query），浏览器不提供主动请求 API
-- **权限持久化**：浏览器授权/拒绝会记忆，拒绝后需用户手动在设置中恢复
-- **不同浏览器差异**：Firefox 不支持 `camera`/`microphone` 的 Permissions API query
-- **request 即触发**：`request('camera')` 会打开摄像头再立即关闭，仅用于触发授权弹窗
-
-## 测试说明
-
-- 单元测试通过 Mock Permissions API + getUserMedia 验证查询/请求/错误
-- **权限弹窗交互需要在真实浏览器中测试**（自动化测试可用 Playwright 设置权限策略）
+- `query` 仅查询状态，不触发权限弹窗
+- `request` 会触发浏览器权限弹窗（首次请求时）
+- `watch` 基于 `permissions.onchange` 事件，不支持该 API 的浏览器将静默降级
+- iOS Safari 对 `navigator.permissions` 支持有限，自动降级

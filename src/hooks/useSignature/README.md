@@ -1,44 +1,59 @@
 # useSignature
 
-Canvas 手写签名 Hook — 支持触屏和鼠标绘制。
+Canvas 手写签名 Hook — 支持触屏和鼠标。
 
-## 用法
+## 基本用法
 
 ```vue
-<template>
-  <canvas ref="canvasRef" width="600" height="300" />
-  <button @click="clear">清除</button>
-  <button @click="undo">撤销</button>
-  <button @click="handleSave">保存</button>
-</template>
-
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useSignature } from "@robot/h5-core/hooks";
+import { useSignature } from "@robot/h5-core";
 
-const canvasRef = ref();
-const { isEmpty, bindCanvas, clear, save, undo } = useSignature({
-  lineWidth: 2,
-  strokeColor: "#000",
-});
+const canvasRef = ref<HTMLCanvasElement>();
+const { isEmpty, bindCanvas, clear, save, undo } = useSignature();
 
-onMounted(() => bindCanvas(canvasRef.value));
+onMounted(() => bindCanvas(canvasRef.value!));
 
 async function handleSave() {
   const file = await save();
-  if (file) {
-    // 上传签名文件...
-  }
+  // file → File 对象（PNG 格式）
 }
 </script>
+
+<template>
+  <canvas ref="canvasRef" width="600" height="300" />
+  <button @click="handleSave" :disabled="isEmpty">保存</button>
+  <button @click="undo">撤销</button>
+  <button @click="clear">清除</button>
+</template>
+```
+
+## 高级用法
+
+```ts
+// 自定义画笔样式
+const { save } = useSignature({
+  lineWidth: 3,
+  strokeColor: "#1a1a1a",
+  backgroundColor: "#f5f5f5",
+});
+
+// 保存为 JPEG（更小体积）
+const file = await save("image/jpeg", 0.85);
+// file.name → "signature-1714000000000.jpeg"
+
+// 保存后直接上传
+const { upload } = useFileUpload();
+const signFile = await save();
+if (signFile) await upload(signFile);
 ```
 
 ## API
 
 | 返回值 | 类型 | 说明 |
 |--------|------|------|
-| `isEmpty` | `Ref<boolean>` | 是否为空白画布 |
-| `bindCanvas()` | `(el: HTMLCanvasElement) => void` | 绑定画布元素 |
+| `isEmpty` | `Ref<boolean>` | 是否空白画布 |
+| `bindCanvas()` | `(el: HTMLCanvasElement) => void` | 绑定画布 |
 | `clear()` | `() => void` | 清除签名 |
 | `save()` | `(type?, quality?) => Promise<File \| null>` | 导出为 File |
 | `undo()` | `() => void` | 撤销最后一笔 |
@@ -53,12 +68,8 @@ async function handleSave() {
 
 ## 注意事项
 
-- **触屏支持**：同时监听 mouse 和 touch 事件，移动端体验良好
-- **高 DPI 屏幕**：建议将 canvas 尺寸乘以 `devicePixelRatio` 以获得清晰签名
-- **组件卸载自动清理**：自动移除事件监听
-- **空签名检查**：`save()` 在 `isEmpty` 为 true 时返回 null
-
-## 测试说明
-
-- 单元测试通过 Mock Canvas API 验证 bindCanvas/clear/undo/save 逻辑
-- **真机测试建议**：触屏手写的流畅度和精度需要在真实移动设备上验证，特别是低端设备上的绘制性能
+- 同时监听 mouse 和 touch 事件，桌面端和移动端均可用
+- `save()` 的 `type` 参数支持 `image/png`（默认）、`image/jpeg` 等，文件扩展名自动从 type 派生
+- 高 DPI 屏幕建议 canvas 尺寸乘以 `devicePixelRatio`
+- 组件卸载自动清理事件监听
+- `isEmpty` 为 `true` 时 `save()` 返回 `null`

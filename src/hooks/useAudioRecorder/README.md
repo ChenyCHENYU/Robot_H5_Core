@@ -2,19 +2,47 @@
 
 录音 Hook — 基于 MediaRecorder API，支持暂停/恢复。
 
-## 用法
+## 基本用法
 
 ```ts
-import { useAudioRecorder } from "@robot/h5-core/hooks";
+import { useAudioRecorder } from "@robot/h5-core";
 
-const { isRecording, isPaused, duration, error, start, stop, pause, resume } = useAudioRecorder();
+const { isRecording, duration, error, start, stop } = useAudioRecorder();
 
 await start();
-// 录音中...
-pause();
-resume();
+// duration.value 实时更新（毫秒）
 const blob = await stop();
-// blob = Blob { type: 'audio/webm;codecs=opus' }
+// blob → 音频 Blob 对象
+```
+
+## 高级用法
+
+```ts
+// 暂停/恢复
+const { start, stop, pause, resume, isPaused } = useAudioRecorder();
+await start();
+pause();   // isPaused.value → true
+resume();  // isPaused.value → false，duration 继续累加
+const blob = await stop();
+
+// 指定格式和比特率
+const { start } = useAudioRecorder({
+  mimeType: "audio/mp4",          // iOS Safari 需要 audio/mp4
+  audioBitsPerSecond: 128000,
+});
+
+// 录音后上传
+const { upload } = useFileUpload();
+const blob = await stop();
+if (blob) {
+  const file = new File([blob], `recording-${Date.now()}.webm`, { type: blob.type });
+  await upload(file);
+}
+
+// 配合 usePermission 预请求麦克风权限
+const { request } = usePermission();
+const granted = await request("microphone");
+if (granted) await start();
 ```
 
 ## API
@@ -34,19 +62,12 @@ const blob = await stop();
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `mimeType` | `string` | 音频格式，默认自动选择最佳 |
+| `mimeType` | `string` | 音频格式，默认自动选择最佳格式 |
 | `audioBitsPerSecond` | `number` | 音频比特率 |
 
 ## 注意事项
 
-- **HTTPS 必需**：`getUserMedia` 要求安全上下文
-- **权限请求**：首次使用会弹出麦克风授权，可配合 `usePermission` 预请求
-- **组件卸载自动清理**：自动停止录音并释放 MediaStream
-- **格式兼容性**：优先使用 `audio/webm;codecs=opus`，不支持时降级到 `audio/ogg` 或 `audio/mp4`
-- **iOS Safari**：不支持 `audio/webm`，需要 `audio/mp4` 格式
-
-## 测试说明
-
-- 单元测试环境（happy-dom）**无 MediaRecorder API**，仅能测试初始状态
-- **必须在真实浏览器中测试录音功能**（推荐 Chrome DevTools + Playwright）
-- 建议通过 E2E 测试验证：录音→暂停→恢复→停止→播放 完整流程
+- HTTPS 必需
+- 首次使用弹出麦克风授权，建议配合 `usePermission` 预请求
+- 组件卸载自动停止录音并释放 MediaStream
+- 格式优先级：`audio/webm;codecs=opus` > `audio/webm` > `audio/ogg` > `audio/mp4`

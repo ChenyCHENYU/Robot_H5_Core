@@ -2,15 +2,39 @@
 
 二维码/条形码扫描 Hook。
 
-## 用法
+## 基本用法
 
 ```ts
-import { useQrScanner } from "@robot/h5-core/hooks";
+import { useQrScanner } from "@robot/h5-core";
 
-const { result, loading, error, scan } = useQrScanner({ type: "qrcode" });
+const { result, loading, error, scan } = useQrScanner();
 
 const text = await scan();
-// text = "https://example.com"
+// text → 扫码内容字符串
+```
+
+## 高级用法
+
+```ts
+// 指定码类型
+const { scan } = useQrScanner({ type: "barcode" });
+
+// 调用时覆盖
+const text = await scan({ type: "all" }); // 同时识别二维码和条形码
+
+// 浏览器环境下通过 overrides 注入 jsQR 实现
+defineAppConfig(app, {
+  bridge: {
+    overrides: {
+      scanner: {
+        async scan() {
+          // 接入 jsQR 或其他前端扫码库
+          return await jsQRScan();
+        },
+      },
+    },
+  },
+});
 ```
 
 ## API
@@ -30,11 +54,6 @@ const text = await scan();
 
 ## 注意事项
 
-- **浏览器不支持原生扫码**：BrowserBridge 会直接抛出错误，提示接入 jsQR 等第三方库
-- **APP/钉钉/微信**：通过 Bridge 调用原生扫码，体验最佳
-- 建议项目侧通过 `registerAdapter` 注入集成了 jsQR 的自定义 BrowserBridge 以支持纯 Web 扫码
-
-## 测试说明
-
-- 单元测试通过 Mock Bridge 验证调用链
-- **真机测试建议**：不同码的识别率受相机质量影响，建议在真实设备上测试条形码和低对比度二维码的识别
+- 浏览器无原生扫码能力，BrowserBridge 会抛错提示接入 jsQR
+- APP/钉钉/微信通过 Bridge 调用原生扫码
+- 建议通过 `overrides` 或 `registerAdapter` 注入前端扫码实现
