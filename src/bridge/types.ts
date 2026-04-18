@@ -14,8 +14,11 @@ export interface BridgeAdapter {
   };
 
   location: {
-    getCurrent(): Promise<Coordinates>;
-    watchPosition(callback: (pos: Coordinates) => void): () => void;
+    getCurrent(options?: LocationQueryOptions): Promise<Coordinates>;
+    watchPosition(
+      callback: (pos: Coordinates) => void,
+      options?: LocationQueryOptions,
+    ): () => void;
   };
 
   nfc: {
@@ -46,6 +49,11 @@ export interface CameraOptions {
 
 export interface ScanOptions {
   type?: "qrcode" | "barcode" | "all";
+}
+
+export interface LocationQueryOptions {
+  timeout?: number;
+  enableHighAccuracy?: boolean;
 }
 
 export interface Coordinates {

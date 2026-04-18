@@ -30,8 +30,9 @@ export function useFilePreview(options?: UseFilePreviewOptions): UseFilePreviewR
       await runBeforeExtensions("useFilePreview", [url, name]);
 
       if (options?.previewServer) {
-        const previewUrl = `${options.previewServer}?url=${encodeURIComponent(url)}`;
-        await bridge.file.preview(previewUrl, name);
+        const previewUrl = new URL(options.previewServer);
+        previewUrl.searchParams.set("url", url);
+        await bridge.file.preview(previewUrl.toString(), name);
       } else {
         await bridge.file.preview(url, name);
       }

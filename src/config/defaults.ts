@@ -4,7 +4,7 @@ import type { AppConfig } from "./types";
  * 包内默认配置 — 所有字段都有合理默认值
  * 项目侧通过 defineAppConfig 覆盖
  */
-export const defaults: Required<AppConfig> = {
+export const defaults: AppConfig = {
   bridge: {
     platform: "auto",
   },

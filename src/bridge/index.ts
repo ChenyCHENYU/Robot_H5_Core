@@ -12,6 +12,7 @@ export type {
   BridgeAdapterOverrides,
   CameraOptions,
   ScanOptions,
+  LocationQueryOptions,
   Coordinates,
   NFCData,
   BluetoothDeviceInfo,

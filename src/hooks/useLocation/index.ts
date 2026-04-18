@@ -35,7 +35,10 @@ export function useLocation(options?: UseLocationOptions): UseLocationReturn {
     error.value = null;
     try {
       await runBeforeExtensions("useLocation", [opts]);
-      const pos = await bridge.location.getCurrent();
+      const pos = await bridge.location.getCurrent({
+        timeout: opts.timeout,
+        enableHighAccuracy: opts.enableHighAccuracy,
+      });
       const result = await runAfterExtensions("useLocation", pos);
       position.value = result;
       return result;
@@ -48,9 +51,12 @@ export function useLocation(options?: UseLocationOptions): UseLocationReturn {
   }
 
   function watchPosition() {
-    stopFn = bridge.location.watchPosition((pos) => {
-      position.value = pos;
-    });
+    stopFn = bridge.location.watchPosition(
+      (pos) => {
+        position.value = pos;
+      },
+      { enableHighAccuracy: opts.enableHighAccuracy },
+    );
   }
 
   function stopWatch() {

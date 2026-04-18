@@ -7,6 +7,7 @@ export type {
   BridgeAdapterOverrides,
   CameraOptions,
   ScanOptions,
+  LocationQueryOptions,
 } from "../bridge/types";
 export type {
   AppConfig,
@@ -18,7 +19,6 @@ export type {
 export type {
   UseCameraOptions,
   UseCameraReturn,
-  UseAsyncReturn,
 } from "../hooks/types";
 export type { UseLocationOptions } from "../hooks/useLocation";
 export type { HookExtension, ExtensionContext } from "../hooks/extend";

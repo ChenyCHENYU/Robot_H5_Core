@@ -54,7 +54,7 @@ const browserBridge: BridgeAdapter = {
   },
 
   location: {
-    getCurrent(): Promise<Coordinates> {
+    getCurrent(options?: { timeout?: number; enableHighAccuracy?: boolean }): Promise<Coordinates> {
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
           return reject(new Error("[h5-core] 浏览器不支持 Geolocation"));
@@ -69,20 +69,29 @@ const browserBridge: BridgeAdapter = {
               timestamp: pos.timestamp,
             }),
           (err) => reject(new Error(`[h5-core] 定位失败: ${err.message}`)),
-          { enableHighAccuracy: true, timeout: 10000 },
+          {
+            enableHighAccuracy: options?.enableHighAccuracy ?? true,
+            timeout: options?.timeout ?? 10000,
+          },
         );
       });
     },
 
-    watchPosition(callback: (pos: Coordinates) => void): () => void {
-      const id = navigator.geolocation.watchPosition((pos) =>
-        callback({
-          longitude: pos.coords.longitude,
-          latitude: pos.coords.latitude,
-          altitude: pos.coords.altitude ?? undefined,
-          accuracy: pos.coords.accuracy,
-          timestamp: pos.timestamp,
-        }),
+    watchPosition(
+      callback: (pos: Coordinates) => void,
+      options?: { enableHighAccuracy?: boolean },
+    ): () => void {
+      const id = navigator.geolocation.watchPosition(
+        (pos) =>
+          callback({
+            longitude: pos.coords.longitude,
+            latitude: pos.coords.latitude,
+            altitude: pos.coords.altitude ?? undefined,
+            accuracy: pos.coords.accuracy,
+            timestamp: pos.timestamp,
+          }),
+        undefined,
+        { enableHighAccuracy: options?.enableHighAccuracy ?? true },
       );
       return () => navigator.geolocation.clearWatch(id);
     },
