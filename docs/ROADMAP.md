@@ -7,7 +7,7 @@
 - [x] 配置系统（defineAppConfig / provide-inject + Bridge 自动注入）
 - [x] Hook 扩展系统（extendHook / before / after）
 - [x] 6 个 Utils 工具模块
-- [x] 140+ 单元测试（含 useAudioRecorder / useVideoRecorder）
+- [x] 196 单元测试（覆盖全部 15 个 Hook + Utils + Bridge + Config）
 - [x] Vite 库构建配置（ESM + 类型声明 + sourcemap）
 - [x] ESLint + TypeScript 零错误
 - [x] createFallbackAdapter（未覆盖能力自动降级到浏览器）

@@ -71,3 +71,7 @@
 - ✅ hooks/useOfflineStorage.test.ts
 - ✅ hooks/useAudioRecorder.test.ts
 - ✅ hooks/useVideoRecorder.test.ts
+- ✅ hooks/useFileDownload.test.ts
+- ✅ utils/device.test.ts
+- ✅ bridge/browser.test.ts
+- ✅ bridge/stub.test.ts

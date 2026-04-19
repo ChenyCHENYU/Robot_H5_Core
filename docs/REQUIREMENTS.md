@@ -124,6 +124,7 @@
 | `useBluetooth` | — | — | — | **P3 备用**（蓝牙打印） |
 | `useOfflineStorage` | — | — | — | **P3 备用**（离线巡检数据缓存） |
 | `usePermission` | ★ | ★ | ★ | **P1 基础**（权限预请求，各平台通用） |
+| `useFileDownload` | ★ | ★ | ★ | **P2 增强**（合同/报表/签名下载，各平台通用） |
 
 ---
 
