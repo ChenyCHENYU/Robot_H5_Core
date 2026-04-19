@@ -133,7 +133,7 @@ export function useFileDownload(
       // 流式读取（支持进度）
       if (response.body && contentLength > 0) {
         const reader = response.body.getReader();
-        const chunks: Uint8Array[] = [];
+        const chunks: BlobPart[] = [];
         let loaded = 0;
 
         for (;;) {
