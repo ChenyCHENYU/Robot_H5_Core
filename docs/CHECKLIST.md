@@ -25,13 +25,13 @@
 - ✅ useLocation — GPS 定位 + 持续监听
 - ✅ useQrScanner — 扫码
 - ✅ useNfc — NFC 读写
-- ✅ useFileUpload — 分片上传 + 单片自动重试
+- ✅ useFileUpload — 分片上传 + 单片自动重试 + 断点续传
 - ✅ useFilePreview — 文件预览
 - ✅ useSignature — 手写签名
 - ✅ useAudioRecorder — 录音（精确计时）
 - ✅ useVideoRecorder — 视频录制（精确计时）
 - ✅ useBluetooth — 蓝牙
-- ✅ useOfflineStorage — 离线存储 + 自动关闭连接
+- ✅ useOfflineStorage — 离线存储 + 自动关闭连接 + 在线同步队列
 - ✅ usePushNotification — 推送
 - ✅ useWatermark — 水印（保留原图格式）
 - ✅ usePermission — 权限查询/请求/状态监听

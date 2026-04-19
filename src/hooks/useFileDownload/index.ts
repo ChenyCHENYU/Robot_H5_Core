@@ -66,7 +66,7 @@ export function useFileDownload(
 
     // 从 URL 路径推断
     try {
-      const pathname = new URL(url).pathname;
+      const {pathname} = new URL(url);
       const segments = pathname.split("/").filter(Boolean);
       if (segments.length > 0) {
         const last = decodeURIComponent(segments[segments.length - 1]);

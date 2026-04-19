@@ -3,7 +3,7 @@
  * GCJ-02 (火星坐标 / 高德 / 腾讯) ↔ WGS-84 (GPS / 国际)
  */
 
-const PI = Math.PI;
+const {PI} = Math;
 const A = 6378245.0; // 长半轴
 const EE = 0.00669342162296594323; // 偏心率平方
 

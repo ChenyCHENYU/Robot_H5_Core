@@ -1,9 +1,8 @@
 import type { App, Plugin } from "vue";
 import type { AppConfig } from "./config/types";
-import type { HookExtension } from "./hooks/extend";
 import type { BridgeAdapter } from "./bridge/types";
 import { defineAppConfig } from "./config";
-import { extendHook } from "./hooks/extend";
+import { extendHook, type HookExtension } from "./hooks/extend";
 import { registerAdapter } from "./bridge";
 
 /* ------------------------------------------------------------------ */

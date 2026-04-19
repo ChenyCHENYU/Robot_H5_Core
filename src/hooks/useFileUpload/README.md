@@ -1,6 +1,6 @@
 # useFileUpload
 
-分片上传 Hook — 支持进度跟踪、取消上传、失败自动重试。
+分片上传 Hook — 支持进度跟踪、取消上传、失败自动重试、断点续传。
 
 ## 基本用法
 
@@ -12,6 +12,25 @@ const { progress, uploading, error, upload, abort } = useFileUpload();
 const result = await upload(file);
 // progress.value → { loaded, total, percent }
 ```
+
+## 断点续传
+
+启用 `resumable` 后，已上传的分片通过 localStorage 持久化。上传中断后再次对同一文件调用 `upload()`，自动跳过已完成的分片。
+
+```ts
+const { upload, progress } = useFileUpload({
+  action: "/api/file/upload",
+  resumable: true, // 启用断点续传
+});
+
+// 第一次上传 — 中途断网/取消
+await upload(largeFile); // 假设上传了 3/10 个分片
+
+// 第二次上传 — 自动从第 4 个分片继续
+await upload(largeFile); // 跳过前 3 个，从第 4 个开始
+```
+
+> fileId 由 `文件名 + 文件大小 + lastModified` 生成，同一文件自动匹配。
 
 ## 高级用法
 
@@ -69,6 +88,7 @@ defineAppConfig(app, {
 | `headers` | `Record \| () => Record` | `{}` | 请求头（支持函数动态获取） |
 | `withCredentials` | `boolean` | `false` | 是否携带 Cookie |
 | `maxRetries` | `number` | `3` | 单片上传失败最大重试次数 |
+| `resumable` | `boolean` | `false` | 启用断点续传 |
 
 ## 注意事项
 
@@ -76,3 +96,5 @@ defineAppConfig(app, {
 - 分片字段：`file`（分片数据）、`chunk`（片索引）、`chunks`（总片数）、`filename`、`fileId`
 - `abort()` 通过 AbortController 中断当前请求
 - `headers` 支持函数，每片请求时动态调用（Token 刷新场景）
+- 断点续传的进度记录在 localStorage，上传完成后自动清除
+- `resumable` 模式的 fileId 基于文件元数据生成（同一文件多次调用 upload 自动匹配）

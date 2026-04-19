@@ -156,3 +156,141 @@ describe("useOfflineStorage", () => {
     expect(loading.value).toBe(false);
   });
 });
+
+// ---- Sync queue tests ----
+
+describe("useOfflineStorage sync queue", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("未配置 sync 时 pendingCount 始终为 0", async () => {
+    createMockIDB();
+    const { result: { set, pendingCount, syncStatus } } = withSetup(() =>
+      useOfflineStorage(),
+    );
+    await set("key", "val");
+    expect(pendingCount.value).toBe(0);
+    expect(syncStatus.value).toBe("idle");
+  });
+
+  it("配置 sync 后 set 操作自动入队", async () => {
+    createMockIDB();
+    const { result: { set, pendingCount } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await set("k1", "v1");
+    expect(pendingCount.value).toBe(1);
+    await set("k2", "v2");
+    expect(pendingCount.value).toBe(2);
+  });
+
+  it("remove 操作自动入队", async () => {
+    createMockIDB();
+    const { result: { set, remove, pendingCount } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await set("k1", "v1");
+    await remove("k1");
+    expect(pendingCount.value).toBe(2); // set + remove
+  });
+
+  it("clear 操作自动入队", async () => {
+    createMockIDB();
+    const { result: { clear, pendingCount } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await clear();
+    expect(pendingCount.value).toBe(1);
+  });
+
+  it("flush 发送操作并清空队列", async () => {
+    createMockIDB();
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result: { set, flush, pendingCount, syncStatus } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await set("k1", "v1");
+    await set("k2", "v2");
+    expect(pendingCount.value).toBe(2);
+
+    await flush();
+    expect(mockFetch).toHaveBeenCalledWith("/api/sync", expect.objectContaining({
+      method: "POST",
+      headers: expect.objectContaining({ "Content-Type": "application/json" }),
+    }));
+    expect(pendingCount.value).toBe(0);
+    expect(syncStatus.value).toBe("idle");
+  });
+
+  it("flush 失败时 syncStatus 为 error", async () => {
+    createMockIDB();
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result: { set, flush, syncStatus, pendingCount } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await set("k1", "v1");
+    await flush();
+    expect(syncStatus.value).toBe("error");
+    expect(pendingCount.value).toBe(1); // 未清空
+  });
+
+  it("flush 队列为空时不发请求", async () => {
+    createMockIDB();
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result: { flush } } = withSetup(() =>
+      useOfflineStorage({
+        sync: { endpoint: "/api/sync" },
+      }),
+    );
+    await flush();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("未配置 sync 时 flush 为空操作", async () => {
+    createMockIDB();
+    const mockFetch = vi.fn();
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result: { flush } } = withSetup(() => useOfflineStorage());
+    await flush();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("sync headers 支持函数形式", async () => {
+    createMockIDB();
+    const mockFetch = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { result: { set, flush } } = withSetup(() =>
+      useOfflineStorage({
+        sync: {
+          endpoint: "/api/sync",
+          headers: () => ({ Authorization: "Bearer test123" }),
+        },
+      }),
+    );
+    await set("k1", "v1");
+    await flush();
+    expect(mockFetch).toHaveBeenCalledWith("/api/sync", expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: "Bearer test123" }),
+    }));
+  });
+});

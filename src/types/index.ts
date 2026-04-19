@@ -54,6 +54,8 @@ export type { UseBluetoothReturn } from "../hooks/useBluetooth";
 export type {
   UseOfflineStorageOptions,
   UseOfflineStorageReturn,
+  SyncConfig,
+  SyncOperation,
 } from "../hooks/useOfflineStorage";
 export type { UsePushNotificationReturn } from "../hooks/usePushNotification";
 export type {

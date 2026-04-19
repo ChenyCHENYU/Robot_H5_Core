@@ -1,6 +1,6 @@
 {
   "name": "@robot-h5/core",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "企业级移动端 H5 通用能力包 — 厚组合层架构",
   "type": "module",
   "sideEffects": false,
@@ -49,7 +49,8 @@
     "lint": "eslint . --fix",
     "typecheck": "vue-tsc --noEmit",
     "prepare": "husky",
-    "cz": "git-cz"
+    "cz": "git-cz",
+    "changelog": "changelogen --output CHANGELOG.md"
   },
   "peerDependencies": {
     "vue": "^3.3.0"

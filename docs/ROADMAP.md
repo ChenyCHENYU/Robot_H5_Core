@@ -1,6 +1,8 @@
 # h5-core 后续规划
 
-## v1.0 — 当前版本 ✅
+## v1.0.0 — 当前版本 ✅
+
+### 核心能力（v0.1.0）
 
 - [x] 15 个 Hook 实现（全部完成）
 - [x] BrowserBridge 浏览器降级适配器
@@ -23,33 +25,38 @@
 - [x] 签名文件扩展名从 type 派生
 - [x] sideEffects: false（tree-shaking 优化）
 
-## v1.1 — Bridge SDK 集成
+### Plugin 模式（v0.2.0）
 
-> 注：包本身已提供降级框架，以下是 **项目侧** 通过 `overrides` 配置注入对应平台 SDK 的示例集成。
+- [x] `h5Core` Vue Plugin — 一行代码完成全部初始化
+- [x] `defineH5Config` 配置函数 + 完整 IDE 智能提示
+- [x] Bridge 同步初始化（静态导入替代动态 import）
+- [x] `H5PluginConfig` 扩展类型（extensions / adapters）
 
-- [ ] NativeBridge overrides 示例：APP WebView 原生协议注入
-- [ ] DingtalkBridge overrides 示例：dingtalk-jsapi 注入（dd.biz.util.scan / dd.device.geolocation 等）
-- [ ] WechatBridge overrides 示例：weixin-js-sdk 注入（wx.scanQRCode / wx.getLocation 等）
-- [ ] Bridge 集成测试（真机验证）
+### 企业级加固（v1.0.0）
 
-## v1.2 — 质量加固
+- [x] useOfflineStorage：在线自动同步队列（SyncConfig + flush）
+- [x] useFileUpload：断点续传（resumable + localStorage 分片跟踪）
+- [x] GitHub Actions CI/CD（push → lint/test/build，tag → publish）
+- [x] CHANGELOG 自动生成
+- [x] 平台 SDK 集成示例（钉钉 / 微信 / 原生 WebView）
+- [x] 覆盖率配置（v8 provider，80% 阈值）
+
+## v1.1 — 质量深化
 
 - [ ] E2E 测试：Playwright 覆盖需真实浏览器 API 的 Hook（MediaRecorder / getUserMedia / IndexedDB）
 - [ ] 测试覆盖率达到 90%+
-- [ ] npm publish 自动化（CI/CD）
-- [ ] CHANGELOG 自动生成
+- [ ] Bridge 集成测试（真机验证）
+- [ ] API 参考文档（自动从 TSDoc 生成）
 
-## v1.3 — 功能增强
+## v1.2 — 功能增强
 
 - [ ] useAudioRecorder：语音转文字（ASR）扩展
-- [ ] useOfflineStorage：在线自动同步队列
-- [ ] useFileUpload：秒传 / 断点续传
+- [ ] useFileUpload：秒传（hash 校验）
 - [ ] useWatermark：多行水印 / 图片水印
 - [ ] useSignature：笔锋效果 / 压感支持
 
 ## 文档计划
 
-- [ ] 各 Bridge overrides 接入指南（含完整代码示例）
+- [x] 各 Bridge overrides 接入指南（examples/ 目录）
 - [ ] 项目集成最佳实践
 - [ ] 常见问题 FAQ
-- [ ] API 参考文档（自动从 TSDoc 生成）

@@ -87,3 +87,65 @@ describe("useFileUpload", () => {
     );
   });
 });
+
+describe("useFileUpload resumable", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ code: 200, url: "/files/test.txt" }),
+    });
+  });
+
+  it("resumable 模式完成后清除 localStorage 记录", async () => {
+    const { upload } = useFileUpload({
+      action: "/api/upload",
+      chunkSize: 1024 * 1024,
+      resumable: true,
+    });
+    const file = new File(["hello"], "test.txt", { type: "text/plain" });
+    await upload(file);
+
+    // 上传完成后 localStorage 应该被清除
+    const keys = Object.keys(localStorage);
+    const uploadKeys = keys.filter((k) => k.startsWith("h5_upload_"));
+    expect(uploadKeys).toHaveLength(0);
+  });
+
+  it("resumable 模式跳过已上传分片", async () => {
+    // 创建一个多分片文件（10 bytes，每片 3 bytes → 4 片）
+    const content = "0123456789";
+    const file = new File([content], "big.txt", { type: "text/plain" });
+    const fileId = `${file.name}-${file.size}-${file.lastModified}`;
+
+    // 预设前 2 个分片已上传
+    localStorage.setItem(`h5_upload_${fileId}`, JSON.stringify([0, 1]));
+
+    const { upload, progress } = useFileUpload({
+      action: "/api/upload",
+      chunkSize: 3,
+      resumable: true,
+    });
+
+    await upload(file);
+
+    // 只应该上传分片 2 和 3（跳过 0 和 1）
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(progress.value.percent).toBe(100);
+  });
+
+  it("非 resumable 模式不使用 localStorage", async () => {
+    const { upload } = useFileUpload({
+      action: "/api/upload",
+      chunkSize: 1024 * 1024,
+      resumable: false,
+    });
+    const file = new File(["hello"], "test.txt", { type: "text/plain" });
+    await upload(file);
+
+    const keys = Object.keys(localStorage);
+    const uploadKeys = keys.filter((k) => k.startsWith("h5_upload_"));
+    expect(uploadKeys).toHaveLength(0);
+  });
+});
