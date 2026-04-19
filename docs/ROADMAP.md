@@ -2,7 +2,7 @@
 
 ## v1.0 — 当前版本 ✅
 
-- [x] 14 个 Hook 实现（全部完成）
+- [x] 15 个 Hook 实现（全部完成）
 - [x] BrowserBridge 浏览器降级适配器
 - [x] 配置系统（defineAppConfig / provide-inject + Bridge 自动注入）
 - [x] Hook 扩展系统（extendHook / before / after）

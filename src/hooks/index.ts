@@ -12,6 +12,7 @@ export { useOfflineStorage } from "./useOfflineStorage";
 export { usePushNotification } from "./usePushNotification";
 export { useWatermark } from "./useWatermark";
 export { usePermission } from "./usePermission";
+export { useFileDownload } from "./useFileDownload";
 export { extendHook, clearExtensions } from "./extend";
 export type { UseCameraOptions, UseCameraReturn } from "./types";
 export type { UseLocationOptions, UseLocationReturn } from "./useLocation";
@@ -43,3 +44,8 @@ export type {
 export type { UsePushNotificationReturn } from "./usePushNotification";
 export type { UseWatermarkOptions, UseWatermarkReturn } from "./useWatermark";
 export type { UsePermissionReturn, PermissionName } from "./usePermission";
+export type {
+  UseFileDownloadOptions,
+  UseFileDownloadReturn,
+  DownloadProgress,
+} from "./useFileDownload";

@@ -45,7 +45,7 @@ const { position, getCurrentPosition } = useLocation();
 
 ## 功能导航
 
-### Hooks（14 个组合函数）
+### Hooks（15 个组合函数）
 
 | Hook | 说明 | 文档 |
 |------|------|------|
@@ -63,6 +63,7 @@ const { position, getCurrentPosition } = useLocation();
 | `usePushNotification` | 推送通知 | [README](src/hooks/usePushNotification/README.md) |
 | `useWatermark` | 图片水印（保留原图格式） | [README](src/hooks/useWatermark/README.md) |
 | `usePermission` | 系统权限查询/请求/监听 | [README](src/hooks/usePermission/README.md) |
+| `useFileDownload` | 文件下载 + 流式进度 | [README](src/hooks/useFileDownload/README.md) |
 
 ### Bridge 适配器
 
@@ -92,7 +93,7 @@ const { position, getCurrentPosition } = useLocation();
 业务项目（薄）── defineAppConfig + useXxx ──┐
                                              │
 @robot/h5-core（厚）                         ▼
-├── hooks/     14 个组合函数（封装全部逻辑）
+├── hooks/     15 个组合函数（封装全部逻辑）
 ├── bridge/    4 个适配器（Native/钉钉/微信/浏览器）
 ├── config/    配置驱动（provide/inject）
 ├── utils/     纯函数工具（零依赖）

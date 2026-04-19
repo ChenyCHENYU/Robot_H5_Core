@@ -63,3 +63,8 @@ export type {
   UsePermissionReturn,
   PermissionName,
 } from "../hooks/usePermission";
+export type {
+  UseFileDownloadOptions,
+  UseFileDownloadReturn,
+  DownloadProgress,
+} from "../hooks/useFileDownload";

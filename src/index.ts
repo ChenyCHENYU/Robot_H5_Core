@@ -24,6 +24,7 @@ export { useOfflineStorage } from "./hooks/useOfflineStorage";
 export { usePushNotification } from "./hooks/usePushNotification";
 export { useWatermark } from "./hooks/useWatermark";
 export { usePermission } from "./hooks/usePermission";
+export { useFileDownload } from "./hooks/useFileDownload";
 
 // Re-export sub-modules for convenience
 export * from "./utils";

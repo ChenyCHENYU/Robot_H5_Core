@@ -35,6 +35,7 @@
 - ✅ usePushNotification — 推送
 - ✅ useWatermark — 水印（保留原图格式）
 - ✅ usePermission — 权限查询/请求/状态监听
+- ✅ useFileDownload — 文件下载 + 流式进度 + 取消
 
 ## Utils 工具函数
 
