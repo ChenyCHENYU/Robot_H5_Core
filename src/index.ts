@@ -1,4 +1,10 @@
-// @robot/h5-core 顶层入口
+// @robot-h5/core 顶层入口
+
+// ===== Plugin（推荐方式）=====
+export { h5Core, defineH5Config } from "./plugin";
+export type { H5PluginConfig } from "./plugin";
+
+// ===== 配置 / Bridge（底层 API）=====
 export { defineAppConfig, useAppConfig } from "./config";
 export {
   createBridge,

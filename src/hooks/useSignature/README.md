@@ -7,7 +7,7 @@ Canvas 手写签名 Hook — 支持触屏和鼠标。
 ```vue
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useSignature } from "@robot/h5-core";
+import { useSignature } from "@robot-h5/core";
 
 const canvasRef = ref<HTMLCanvasElement>();
 const { isEmpty, bindCanvas, clear, save, undo } = useSignature();

@@ -1,3 +1,4 @@
+export type { H5PluginConfig } from "../plugin";
 export type {
   Coordinates,
   NFCData,

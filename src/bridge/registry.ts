@@ -1,25 +1,21 @@
 import type { BridgeAdapter } from "./types";
+import browserAdapter from "./adapters/browser";
+import nativeAdapter from "./adapters/native";
+import dingtalkAdapter from "./adapters/dingtalk";
+import wechatAdapter from "./adapters/wechat";
 
-type AdapterFactory = () => BridgeAdapter | Promise<BridgeAdapter>;
+type AdapterEntry = BridgeAdapter | (() => BridgeAdapter);
 
 /**
  * 适配器注册表 — 支持内建 + 项目自定义
  */
-const adapterRegistry = new Map<string, AdapterFactory>();
+const adapterRegistry = new Map<string, AdapterEntry>();
 
-// 内建适配器（动态导入，按需加载）
-adapterRegistry.set("browser", () =>
-  import("./adapters/browser").then((m) => m.default),
-);
-adapterRegistry.set("native", () =>
-  import("./adapters/native").then((m) => m.default),
-);
-adapterRegistry.set("dingtalk", () =>
-  import("./adapters/dingtalk").then((m) => m.default),
-);
-adapterRegistry.set("wechat", () =>
-  import("./adapters/wechat").then((m) => m.default),
-);
+// 内建适配器（静态导入 — 各适配器 <300B，无需代码分割）
+adapterRegistry.set("browser", browserAdapter);
+adapterRegistry.set("native", nativeAdapter);
+adapterRegistry.set("dingtalk", dingtalkAdapter);
+adapterRegistry.set("wechat", wechatAdapter);
 
 /**
  * 注册自定义适配器（项目侧扩展）
@@ -31,25 +27,22 @@ adapterRegistry.set("wechat", () =>
  */
 export function registerAdapter(
   name: string,
-  adapter: BridgeAdapter | AdapterFactory,
+  adapter: BridgeAdapter | (() => BridgeAdapter),
 ): void {
-  adapterRegistry.set(
-    name,
-    typeof adapter === "function" ? (adapter as AdapterFactory) : () => adapter,
-  );
+  adapterRegistry.set(name, adapter);
 }
 
 /**
- * 解析适配器实例
+ * 解析适配器实例（同步）
  */
-export async function resolveAdapter(name: string): Promise<BridgeAdapter> {
-  const factory = adapterRegistry.get(name);
-  if (!factory) {
+export function resolveAdapter(name: string): BridgeAdapter {
+  const entry = adapterRegistry.get(name);
+  if (!entry) {
     throw new Error(
       `[h5-core] 未知适配器: "${name}"。可用: ${[...adapterRegistry.keys()].join(", ")}`,
     );
   }
-  return factory();
+  return typeof entry === "function" ? entry() : entry;
 }
 
 /**

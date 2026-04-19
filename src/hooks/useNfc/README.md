@@ -5,7 +5,7 @@ NFC 读写 Hook。
 ## 基本用法
 
 ```ts
-import { useNfc } from "@robot/h5-core";
+import { useNfc } from "@robot-h5/core";
 
 const { data, loading, error, read, write } = useNfc();
 

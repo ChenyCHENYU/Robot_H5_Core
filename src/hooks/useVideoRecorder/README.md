@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useVideoRecorder } from "@robot/h5-core";
+import { useVideoRecorder } from "@robot-h5/core";
 
 const { isRecording, duration, stream, error, start, stop } = useVideoRecorder();
 
@@ -19,7 +19,7 @@ const blob = await stop();
 ```vue
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useVideoRecorder } from "@robot/h5-core";
+import { useVideoRecorder } from "@robot-h5/core";
 
 const videoRef = ref<HTMLVideoElement>();
 const { isRecording, duration, stream, start, stop } = useVideoRecorder({

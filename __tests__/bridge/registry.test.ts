@@ -15,18 +15,18 @@ describe("bridge registry", () => {
     expect(names).toContain("wechat");
   });
 
-  it("resolveAdapter 可加载 browser 适配器", async () => {
-    const adapter = await resolveAdapter("browser");
+  it("resolveAdapter 可加载 browser 适配器", () => {
+    const adapter = resolveAdapter("browser");
     expect(adapter.platform).toBe("browser");
   });
 
-  it("resolveAdapter 未知适配器抛错", async () => {
-    await expect(resolveAdapter("unknown-platform")).rejects.toThrow(
+  it("resolveAdapter 未知适配器抛错", () => {
+    expect(() => resolveAdapter("unknown-platform")).toThrow(
       "未知适配器",
     );
   });
 
-  it("registerAdapter 注册自定义适配器", async () => {
+  it("registerAdapter 注册自定义适配器", () => {
     const custom: BridgeAdapter = {
       platform: "custom",
       camera: { capture: async () => new File([], "test") },
@@ -53,7 +53,7 @@ describe("bridge registry", () => {
     };
 
     registerAdapter("custom-test", custom);
-    const resolved = await resolveAdapter("custom-test");
+    const resolved = resolveAdapter("custom-test");
     expect(resolved.platform).toBe("custom");
   });
 });

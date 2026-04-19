@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useFileDownload } from "@robot/h5-core";
+import { useFileDownload } from "@robot-h5/core";
 
 const { progress, downloading, error, download, abort } = useFileDownload();
 

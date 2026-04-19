@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { usePermission } from "@robot/h5-core";
+import { usePermission } from "@robot-h5/core";
 
 const { state, loading, error, query, request } = usePermission();
 
@@ -20,7 +20,7 @@ const granted = await request("camera");
 
 ```ts
 // 拍照前先请求权限
-import { usePermission, useCamera } from "@robot/h5-core";
+import { usePermission, useCamera } from "@robot-h5/core";
 
 const { state, request, watch } = usePermission();
 const { capture } = useCamera();

@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useWatermark } from "@robot/h5-core";
+import { useWatermark } from "@robot-h5/core";
 
 const { loading, error, addWatermark } = useWatermark({
   text: "张三 · 2024-01-01 · 生产车间",

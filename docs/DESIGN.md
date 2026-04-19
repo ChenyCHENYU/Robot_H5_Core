@@ -1,7 +1,7 @@
-# @robot/h5-core — 厚组合层设计文档
+# @robot-h5/core — 厚组合层设计文档
 
 > **核心理念：包做厚、项目做薄。**
-> 把复杂度封装在 `@robot/h5-core`，业务项目只需 **配置 + 引用**，即可获得完整能力。
+> 把复杂度封装在 `@robot-h5/core`，业务项目只需 **配置 + 引用**，即可获得完整能力。
 > 同时保留 **项目级扩展点**，允许业务侧按需覆盖/增强，绝不污染包本身。
 
 ---
@@ -29,16 +29,16 @@
 │  业务项目 (Robot_H5, 物流H5, 安全H5 ...)                   │
 │                                                            │
 │  只做三件事:                                                │
-│    1. 提供配置 (defineAppConfig)                            │
-│    2. 引用 Hook (useCamera / useLocation / ...)            │
-│    3. 按需扩展 (registerAdapter / extendHook)              │
+│    1. 声明配置 (defineH5Config → h5.config.ts)             │
+│    2. 注册插件 (app.use(h5Core, config))                   │
+│    3. 引用 Hook (useCamera / useLocation / ...)            │
 │                                                            │
-│  2-3 行代码获得完整能力，零 boilerplate                       │
+│  2 行代码获得完整能力，零 boilerplate                        │
 └────────────────────────┬───────────────────────────────────┘
-                         │ pnpm add @robot/h5-core
+                         │ pnpm add @robot-h5/core
                          ▼
 ┌──────────────────────────────────────────────────────────┐
-│  @robot/h5-core（厚组合层）                                 │
+│  @robot-h5/core（厚组合层）                                 │
 │                                                            │
 │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐     │
 │  │  Hooks  │  │  Bridge  │  │  Utils  │  │ Presets │     │
@@ -107,17 +107,19 @@
 
 | #   | 能力              | 说明                     | 状态 |
 | --- | ----------------- | ------------------------ | ---- |
-| 1   | `defineAppConfig` | 全局配置入口             | ✅   |
-| 2   | `createBridge`    | Bridge 工厂 + 自动检测   | ✅   |
-| 3   | `extendHook`      | Hook 扩展注册            | ✅   |
-| 4   | `registerAdapter` | 自定义 Bridge 适配器注册 | ✅   |
+| 1   | `h5Core`          | Vue Plugin（推荐入口）   | ✅   |
+| 2   | `defineH5Config`  | 配置声明 + IDE 提示      | ✅   |
+| 3   | `defineAppConfig` | 底层配置 API             | ✅   |
+| 4   | `createBridge`    | Bridge 工厂 + 自动检测   | ✅   |
+| 5   | `extendHook`      | Hook 扩展注册            | ✅   |
+| 6   | `registerAdapter` | 自定义 Bridge 适配器注册 | ✅   |
 
 ---
 
 ## 包目录结构
 
 ```
-@robot/h5-core/
+@robot-h5/core/
 ├── package.json
 ├── tsconfig.json
 ├── vitest.config.ts
@@ -127,6 +129,7 @@
 │
 ├── src/
 │   ├── index.ts               # 顶层入口：re-export 所有子模块
+│   ├── plugin.ts              # Vue Plugin（h5Core + defineH5Config）
 │   │
 │   ├── config/                # ===== 配置系统 =====
 │   │   ├── define.ts          # defineAppConfig() 实现
@@ -222,46 +225,42 @@
 
 ### 核心思想：项目只写配置，包做一切
 
+#### 方式一：Vue Plugin（推荐）
+
 ```ts
-// ==========================================
-// 项目 main.ts — 这就是项目需要写的全部代码
-// ==========================================
+// src/h5.config.ts — 独立配置文件，IDE 自动提示
+import { defineH5Config } from "@robot-h5/core";
+
+export default defineH5Config({
+  bridge: { platform: "auto", nativeUA: "robot-app" },
+  upload: { action: "/api/file/upload", headers: () => ({ Authorization: `Bearer ${getToken()}` }) },
+  image: { maxSize: 1024, quality: 0.8 },
+  location: { coordType: "gcj02", timeout: 10000 },
+});
+```
+
+```ts
+// main.ts — 一行注册
 import { createApp } from "vue";
-import { defineAppConfig } from "@robot/h5-core";
+import { h5Core } from "@robot-h5/core";
+import h5Config from "./h5.config";
+import App from "./App.vue";
+
+createApp(App).use(h5Core, h5Config).mount("#app");
+```
+
+#### 方式二：底层 API（细粒度控制）
+
+```ts
+import { createApp } from "vue";
+import { defineAppConfig } from "@robot-h5/core";
 import App from "./App.vue";
 
 const app = createApp(App);
-
 defineAppConfig(app, {
-  // Bridge 配置：告诉包当前宿主环境规则
-  bridge: {
-    platform: "auto", // 'auto' = 自动检测（默认）
-    nativeUA: "robot-app", // APP 端自定义 UA 特征
-    dingtalk: { corpId: "ding_xxx" },
-    wechat: { appId: "wx_xxx" },
-  },
-
-  // 上传配置：所有涉及上传的 Hook 共享
-  upload: {
-    action: "/api/file/upload",
-    chunkSize: 2 * 1024 * 1024,
-    headers: () => ({ Authorization: `Bearer ${getToken()}` }),
-  },
-
-  // 图片配置：拍照/选图类 Hook 共享
-  image: {
-    maxSize: 1024,
-    quality: 0.8,
-    maxWidth: 1920,
-  },
-
-  // 定位配置
-  location: {
-    coordType: "gcj02",
-    timeout: 10000,
-  },
+  bridge: { platform: "auto" },
+  upload: { action: "/api/file/upload" },
 });
-
 app.mount("#app");
 ```
 
@@ -316,7 +315,7 @@ export function useCamera(options?: UseCameraOptions) {
 
 ```vue
 <script setup lang="ts">
-import { useCamera } from "@robot/h5-core/hooks";
+import { useCamera } from "@robot-h5/core/hooks";
 
 // 2 行代码 — 压缩、Bridge 调用、错误处理、资源清理全在包里
 const { photo, loading, capture } = useCamera();
@@ -335,7 +334,7 @@ const { photo, loading, capture } = useCamera();
 ### 原则：扩展在项目中，包本体不变
 
 ```
-node_modules/@robot/h5-core/    ← 只读，永远不动
+node_modules/@robot-h5/core/    ← 只读，永远不动
 src/extensions/                  ← 项目自己的扩展目录
   ├── my-bridge-adapter.ts
   ├── camera-overrides.ts
@@ -345,7 +344,7 @@ src/extensions/                  ← 项目自己的扩展目录
 ### 扩展方式 1：注册自定义 Bridge 适配器
 
 ```ts
-import { registerAdapter } from "@robot/h5-core/bridge";
+import { registerAdapter } from "@robot-h5/core/bridge";
 
 registerAdapter("robot-native-v2", {
   platform: "native",
@@ -369,7 +368,7 @@ registerAdapter("robot-native-v2", {
 ### 扩展方式 2：Hook 行为覆盖
 
 ```ts
-import { extendHook } from "@robot/h5-core";
+import { extendHook } from "@robot-h5/core";
 
 extendHook("useCamera", {
   after: async (file, context) => {
@@ -383,7 +382,7 @@ extendHook("useCamera", {
 ### 扩展方式 3：工具函数补充
 
 ```ts
-import { isPhone } from "@robot/h5-core/utils";
+import { isPhone } from "@robot-h5/core/utils";
 
 // 业务专用校验，不改包
 export function isJobNumber(str: string): boolean {

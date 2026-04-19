@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useAudioRecorder } from "@robot/h5-core";
+import { useAudioRecorder } from "@robot-h5/core";
 
 const { isRecording, duration, error, start, stop } = useAudioRecorder();
 

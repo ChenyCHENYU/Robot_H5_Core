@@ -34,7 +34,7 @@ function deepMerge<T extends Record<string, any>>(
 }
 
 /**
- * 在 app 初始化时调用，注入全局配置
+ * 在 app 初始化时调用，注入全局配置（同步）
  *
  * @example
  * ```ts
@@ -44,14 +44,14 @@ function deepMerge<T extends Record<string, any>>(
  * });
  * ```
  */
-export async function defineAppConfig(
+export function defineAppConfig(
   app: App,
   config: AppConfig = {},
-): Promise<void> {
+): void {
   const merged = deepMerge(defaults, config);
   app.provide(CONFIG_KEY, merged);
 
-  const bridge = await createBridge(
+  const bridge = createBridge(
     merged.bridge?.platform,
     merged.bridge?.nativeUA,
     merged.bridge?.overrides,

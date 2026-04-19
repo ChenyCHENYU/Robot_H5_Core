@@ -24,20 +24,20 @@ const BRIDGE_KEY: InjectionKey<BridgeAdapter> = Symbol("robot-h5-bridge");
 let bridgeInstance: BridgeAdapter | null = null;
 
 /**
- * 创建 Bridge 实例（单例）
+ * 创建 Bridge 实例（单例，同步）
  * 自动检测宿主环境，加载对应适配器
  */
-export async function createBridge(
+export function createBridge(
   platform?: string,
   nativeUA?: string,
   overrides?: BridgeAdapterOverrides,
-): Promise<BridgeAdapter> {
+): BridgeAdapter {
   if (bridgeInstance) return bridgeInstance;
 
   const resolved =
     !platform || platform === "auto" ? detectPlatform(nativeUA) : platform;
 
-  const base = await resolveAdapter(resolved);
+  const base = resolveAdapter(resolved);
   bridgeInstance = overrides ? mergeAdapter(base, overrides) : base;
   return bridgeInstance;
 }

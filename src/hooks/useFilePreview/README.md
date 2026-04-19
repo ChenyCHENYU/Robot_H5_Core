@@ -5,7 +5,7 @@ PDF/Office/图片在线预览 Hook。
 ## 基本用法
 
 ```ts
-import { useFilePreview } from "@robot/h5-core";
+import { useFilePreview } from "@robot-h5/core";
 
 const { loading, error, preview } = useFilePreview();
 

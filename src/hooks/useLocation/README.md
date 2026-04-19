@@ -5,7 +5,7 @@ GPS 单次/持续定位 Hook。
 ## 基本用法
 
 ```ts
-import { useLocation } from "@robot/h5-core";
+import { useLocation } from "@robot-h5/core";
 
 const { position, loading, error, getCurrentPosition } = useLocation();
 
@@ -28,7 +28,7 @@ watchPosition();
 stopWatch();
 
 // 配合坐标转换
-import { gcj02ToWgs84 } from "@robot/h5-core";
+import { gcj02ToWgs84 } from "@robot-h5/core";
 const pos = await getCurrentPosition();
 if (pos) {
   const wgs = gcj02ToWgs84(pos.longitude, pos.latitude);

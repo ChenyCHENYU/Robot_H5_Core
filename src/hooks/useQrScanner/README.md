@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useQrScanner } from "@robot/h5-core";
+import { useQrScanner } from "@robot-h5/core";
 
 const { result, loading, error, scan } = useQrScanner();
 

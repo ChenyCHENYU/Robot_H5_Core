@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useCamera } from "@robot/h5-core";
+import { useCamera } from "@robot-h5/core";
 
 const { photo, preview, loading, error, capture, clear } = useCamera();
 

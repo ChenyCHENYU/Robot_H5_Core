@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { usePushNotification } from "@robot/h5-core";
+import { usePushNotification } from "@robot-h5/core";
 
 const { messages, loading, error, register, onMessage, clearMessages } =
   usePushNotification();

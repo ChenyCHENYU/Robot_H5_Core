@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useOfflineStorage } from "@robot/h5-core";
+import { useOfflineStorage } from "@robot-h5/core";
 
 const { loading, error, get, set, remove } = useOfflineStorage();
 

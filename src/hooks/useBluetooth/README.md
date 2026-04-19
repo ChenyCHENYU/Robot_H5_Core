@@ -5,7 +5,7 @@
 ## 基本用法
 
 ```ts
-import { useBluetooth } from "@robot/h5-core";
+import { useBluetooth } from "@robot-h5/core";
 
 const { device, connected, loading, error, connect, disconnect } = useBluetooth();
 
