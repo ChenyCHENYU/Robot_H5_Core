@@ -75,21 +75,21 @@ const { position, getCurrentPosition } = useLocation();
 
 | Hook | 说明 | 文档 |
 |------|------|------|
-| `useCamera` | 拍照/相册 + 自动压缩 | [README](src/hooks/useCamera/README.md) |
-| `useLocation` | GPS 单次/持续定位 | [README](src/hooks/useLocation/README.md) |
-| `useQrScanner` | 二维码/条形码扫描 | [README](src/hooks/useQrScanner/README.md) |
-| `useNfc` | NFC 读写 | [README](src/hooks/useNfc/README.md) |
-| `useFileUpload` | 分片上传 + 进度条 + 自动重试 | [README](src/hooks/useFileUpload/README.md) |
-| `useFileDownload` | 文件下载 + 流式进度 | [README](src/hooks/useFileDownload/README.md) |
-| `useFilePreview` | PDF/Office/图片预览 | [README](src/hooks/useFilePreview/README.md) |
-| `useSignature` | Canvas 手写签名 | [README](src/hooks/useSignature/README.md) |
-| `useAudioRecorder` | 录音 + 暂停恢复 | [README](src/hooks/useAudioRecorder/README.md) |
-| `useVideoRecorder` | 视频录制 + 实时预览 | [README](src/hooks/useVideoRecorder/README.md) |
-| `useBluetooth` | 蓝牙设备连接 | [README](src/hooks/useBluetooth/README.md) |
-| `useOfflineStorage` | IndexedDB 离线存储 | [README](src/hooks/useOfflineStorage/README.md) |
-| `usePushNotification` | 推送通知 | [README](src/hooks/usePushNotification/README.md) |
-| `useWatermark` | 图片水印（保留原图格式） | [README](src/hooks/useWatermark/README.md) |
-| `usePermission` | 系统权限查询/请求/监听 | [README](src/hooks/usePermission/README.md) |
+| `useCamera` | 拍照/相册 + 自动压缩 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useCamera/README.md) |
+| `useLocation` | GPS 单次/持续定位 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useLocation/README.md) |
+| `useQrScanner` | 二维码/条形码扫描 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useQrScanner/README.md) |
+| `useNfc` | NFC 读写 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useNfc/README.md) |
+| `useFileUpload` | 分片上传 + 进度条 + 自动重试 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useFileUpload/README.md) |
+| `useFileDownload` | 文件下载 + 流式进度 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useFileDownload/README.md) |
+| `useFilePreview` | PDF/Office/图片预览 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useFilePreview/README.md) |
+| `useSignature` | Canvas 手写签名 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useSignature/README.md) |
+| `useAudioRecorder` | 录音 + 暂停恢复 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useAudioRecorder/README.md) |
+| `useVideoRecorder` | 视频录制 + 实时预览 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useVideoRecorder/README.md) |
+| `useBluetooth` | 蓝牙设备连接 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useBluetooth/README.md) |
+| `useOfflineStorage` | IndexedDB 离线存储 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useOfflineStorage/README.md) |
+| `usePushNotification` | 推送通知 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/usePushNotification/README.md) |
+| `useWatermark` | 图片水印（保留原图格式） | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useWatermark/README.md) |
+| `usePermission` | 系统权限查询/请求/监听 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/usePermission/README.md) |
 
 ### Bridge 适配器
 
