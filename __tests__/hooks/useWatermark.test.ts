@@ -12,6 +12,12 @@ vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
 describe("useWatermark", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset createImageBitmap mock
+    vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
+      width: 800,
+      height: 600,
+      close: vi.fn(),
+    }));
   });
 
   it("初始状态正确", () => {
@@ -25,10 +31,14 @@ describe("useWatermark", () => {
     const mockCtx = {
       drawImage: vi.fn(),
       fillText: vi.fn(),
+      strokeText: vi.fn(),
       measureText: vi.fn().mockReturnValue({ width: 100 }),
       globalAlpha: 1,
       font: "",
       fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
     };
     const mockCanvas = {
       width: 800,
@@ -43,6 +53,67 @@ describe("useWatermark", () => {
     const result = await addWatermark(file);
     expect(result).toBeInstanceOf(File);
     expect(result!.name).toBe("photo.jpg");
+  });
+
+  it("autoScale 根据图片尺寸缩放字号", async () => {
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 200 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
+    };
+    const mockCanvas = {
+      width: 3000,
+      height: 4000,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["scaled"]))),
+    };
+    vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
+      width: 3000,
+      height: 4000,
+      close: vi.fn(),
+    }));
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
+
+    const { addWatermark } = useWatermark({ text: "缩放测试", fontSize: 48 });
+    const file = new File(["img"], "large.jpg", { type: "image/jpeg" });
+    await addWatermark(file);
+
+    // fontSize=48 on a 3000px wide image (reference 750) → 48 * (3000/750) = 192
+    expect(mockCtx.font).toContain("192px");
+  });
+
+  it("stroke=false 不绘制描边", async () => {
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 100 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
+    };
+    const mockCanvas = {
+      width: 800,
+      height: 600,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["no-stroke"]))),
+    };
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
+
+    const { addWatermark } = useWatermark({ text: "无描边", stroke: false });
+    const file = new File(["img"], "test.jpg", { type: "image/jpeg" });
+    await addWatermark(file);
+    expect(mockCtx.strokeText).not.toHaveBeenCalled();
   });
 
   it("addWatermark 错误处理", async () => {
