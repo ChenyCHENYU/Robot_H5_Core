@@ -20,10 +20,36 @@ describe("detectPlatform", () => {
     });
     // 清理 NativeCallJs
     delete (window as any).NativeCallJs;
+    // 还原 window.parent（部分用例会改成嵌入态）
+    Object.defineProperty(window, "parent", {
+      value: window.self,
+      writable: true,
+      configurable: true,
+    });
   });
 
   it("检测钉钉环境", () => {
     mockUA("Mozilla/5.0 DingTalk/6.0");
+    expect(detectPlatform()).toBe("dingtalk");
+  });
+
+  it("钉钉内以 iframe 嵌入基座 → mbase", () => {
+    mockUA("Mozilla/5.0 DingTalk/6.0");
+    Object.defineProperty(window, "parent", {
+      value: {},
+      writable: true,
+      configurable: true,
+    });
+    expect(detectPlatform()).toBe("mbase");
+  });
+
+  it("钉钉内顶层页面（非嵌入）仍为 dingtalk", () => {
+    mockUA("Mozilla/5.0 DingTalk/6.0");
+    Object.defineProperty(window, "parent", {
+      value: window.self,
+      writable: true,
+      configurable: true,
+    });
     expect(detectPlatform()).toBe("dingtalk");
   });
 

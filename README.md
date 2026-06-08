@@ -98,7 +98,13 @@ const { position, getCurrentPosition } = useLocation();
 | `BrowserBridge` | 浏览器 | 完整实现，Web 标准 API 降级 |
 | `NativeBridge` | APP WebView | 项目侧通过 `overrides` 注入原生 SDK |
 | `DingtalkBridge` | 钉钉 | 项目侧通过 `overrides` 注入 dingtalk-jsapi |
+| `MbaseBridge` | 钉钉内嵌入基座(mbase) | 子应用经基座 `postMessage` 桥接拍照/扫码/定位，**自动识别，零配置** |
 | `WechatBridge` | 微信/企微 | 项目侧通过 `overrides` 注入 weixin-js-sdk |
+
+> **mbase 自动识别**：当应用以 iframe 形式嵌入门户基座、且运行在钉钉客户端内时，
+> `platform: "auto"` 会自动解析为 `mbase`（钉钉顶层页面仍为 `dingtalk`，其余环境不受影响）。
+> 详见下文 [基座嵌入场景（mbase）](#基座嵌入场景mbase)。
+
 
 ### Utils 工具函数
 
@@ -162,6 +168,31 @@ export default defineH5Config({
 });
 ```
 
+### 基座嵌入场景（mbase）
+
+当本应用作为**子应用**以 iframe 形式嵌入移动端门户**基座(mbase)**、且运行在钉钉客户端内时：
+钉钉 WebView 安全策略**禁止 iframe 子页面直接调用拍照/定位 JSAPI**，只有基座（钉钉入口页）有调用权限。
+
+`MbaseBridge` 自动处理这一场景 —— 子应用通过 `postMessage` 请求基座代为调用，基座完成 `dd.config`
+鉴权后执行并回传结果，**业务代码无感知**：
+
+```ts
+// 无需任何额外配置，platform: "auto"（默认）即可自动识别
+import { useCamera, useLocation, useQrScanner } from "@robot-h5/core";
+
+const { capture } = useCamera();        // 自动经基座拍照
+const { getCurrentPosition } = useLocation();  // 自动经基座定位
+const { scan } = useQrScanner();        // 自动经基座扫码
+```
+
+- **自动识别**：钉钉 + iframe 嵌入 → `mbase`；钉钉顶层页面 → `dingtalk`；浏览器/微信等不受影响。
+- **能力范围**：桥接 `camera` / `scanner` / `location`；其余能力（NFC、蓝牙、文件预览、通知）自动降级到浏览器实现。
+- **桥接协议**（与基座约定，子应用 → 基座）：
+  - 请求：`{ source: "mbase-bridge", type: "capability:invoke", id, api, payload }`
+  - 响应：`{ source: "mbase-bridge", type: "capability:result", id, ok, data?, error?, reason? }`
+  - `api`：`takePhoto` · `scan` · `getLocation`
+- **未嵌入基座**时调用会立即拒绝（而非挂起），便于上层降级提示。
+
 ### 自定义适配器
 
 ```ts
@@ -187,7 +218,7 @@ export default defineH5Config({
 @robot-h5/core（厚）
 ├── plugin.ts    Vue Plugin（一行注册）
 ├── hooks/       15 个组合函数（封装全部逻辑）
-├── bridge/      4 个适配器（Native/钉钉/微信/浏览器）
+├── bridge/      5 个适配器（Native/钉钉/mbase/微信/浏览器）
 ├── config/      配置驱动（provide/inject）
 ├── utils/       纯函数工具（零依赖）
 └── types/       共享类型定义

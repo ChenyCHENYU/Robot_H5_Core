@@ -2,6 +2,7 @@ import type { BridgeAdapter } from "./types";
 import browserAdapter from "./adapters/browser";
 import nativeAdapter from "./adapters/native";
 import dingtalkAdapter from "./adapters/dingtalk";
+import mbaseAdapter from "./adapters/mbase";
 import wechatAdapter from "./adapters/wechat";
 
 type AdapterEntry = BridgeAdapter | (() => BridgeAdapter);
@@ -15,6 +16,7 @@ const adapterRegistry = new Map<string, AdapterEntry>();
 adapterRegistry.set("browser", browserAdapter);
 adapterRegistry.set("native", nativeAdapter);
 adapterRegistry.set("dingtalk", dingtalkAdapter);
+adapterRegistry.set("mbase", mbaseAdapter);
 adapterRegistry.set("wechat", wechatAdapter);
 
 /**

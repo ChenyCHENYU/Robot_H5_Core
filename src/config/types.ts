@@ -16,6 +16,7 @@ export interface BridgeConfig {
     | "auto"
     | "native"
     | "dingtalk"
+    | "mbase"
     | "wechat"
     | "browser"
     | (string & {});

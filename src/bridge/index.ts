@@ -5,7 +5,8 @@ import { mergeAdapter } from "./adapters/stub";
 import type { BridgeAdapter, BridgeAdapterOverrides } from "./types";
 
 export { registerAdapter, getRegisteredAdapters } from "./registry";
-export { detectPlatform } from "./detector";
+export { detectPlatform, isEmbedded } from "./detector";
+export type { PlatformType } from "./detector";
 export { mergeAdapter } from "./adapters/stub";
 export type {
   BridgeAdapter,
