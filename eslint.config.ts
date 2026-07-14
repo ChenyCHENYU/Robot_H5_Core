@@ -131,6 +131,7 @@ export default defineConfigWithVueTs(
     name: "app/ignore-assets",
     ignores: [
       "src/assets/images/**/*",
+      "src/vendor/**/*",
       "**/*.d.ts",
       "**/auto-imports.d.ts",
       "src/views/**/components/*.vue",

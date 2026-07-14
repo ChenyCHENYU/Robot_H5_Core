@@ -30,6 +30,9 @@ describe("useLocation", () => {
     expect(pos!.longitude).toBe(116.4);
     expect(pos!.latitude).toBe(39.9);
     expect(position.value).toEqual(pos);
+    expect(mockBridge.location.getCurrent).toHaveBeenCalledWith(
+      expect.objectContaining({ coordinateSystem: "gcj02" }),
+    );
   });
 
   it("getCurrentPosition 错误处理", async () => {

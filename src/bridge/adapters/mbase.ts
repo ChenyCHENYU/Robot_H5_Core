@@ -1,14 +1,24 @@
 import { createFallbackAdapter } from "./stub";
-import { isEmbedded } from "../detector";
-import type { Coordinates, ScanOptions } from "../types";
+import { detectMbaseHost } from "../detector";
+import {
+  MBASE_APP_RESULT_EVENT,
+  MBASE_BRIDGE_PROTOCOL,
+  MBASE_BRIDGE_SOURCE,
+  postMbaseRequest,
+  type MbaseBridgeRequest,
+} from "../transports/mbase";
+import type {
+  Coordinates,
+  LocationQueryOptions,
+  ScanOptions,
+} from "../types";
 
 /**
  * mbase 基座桥接适配器
  *
- * 适用场景：本应用作为「子应用」以 iframe 形式嵌入移动端门户基座(mbase)，
- * 且运行在钉钉客户端内。钉钉 WebView 安全策略禁止 iframe 子页面直接调用
- * 摄像头 / 定位 JSAPI，只有基座（钉钉入口页）能调用。因此子应用通过
- * postMessage 请求基座代为调用，基座完成 dd.config 鉴权后执行并回传结果。
+ * 适用场景：子应用运行在钉钉 iframe 或 mbase App WebView 中。两种宿主共用
+ * 能力协议，由 transport 分别通过 window.postMessage 或 uni.postMessage 发起，
+ * 基座完成平台鉴权和原生能力调用后回传结果。
  *
  * 非嵌入场景（独立浏览器 / 微信 web-view）不会解析到本适配器（见 detector.ts
  * 的 detectPlatform），自动使用 browser / wechat 适配器的原生能力，互不影响。
@@ -20,9 +30,6 @@ import type { Coordinates, ScanOptions } from "../types";
  * 仅 camera / scanner / location 走桥接；nfc / bluetooth / file / notification
  * 沿用 browser 降级实现（基座未代理这些能力）。
  */
-
-/** 桥接消息来源标识，必须与基座保持一致 */
-const BRIDGE_SOURCE = "mbase-bridge";
 
 /** 桥接请求默认超时（拍照需用户操作，给足时间） */
 const BRIDGE_TIMEOUT_MS = 60_000;
@@ -54,24 +61,30 @@ function invokeBridge<T>(
   payload?: Record<string, unknown>,
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    if (!isEmbedded() || typeof window === "undefined" || !window.parent) {
+    const host = detectMbaseHost();
+    if (!host || typeof window === "undefined") {
       reject(new Error("[h5-core] 未嵌入基座(mbase)，无法通过桥接调用原生能力"));
       return;
     }
 
     const id = genId();
     let done = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
       window.removeEventListener("message", onMessage);
-      clearTimeout(timer);
+      window.removeEventListener(
+        MBASE_APP_RESULT_EVENT,
+        onAppResult as EventListener,
+      );
+      if (timer) clearTimeout(timer);
     };
 
-    const onMessage = (event: MessageEvent) => {
-      const msg = parseData(event.data);
+    const handleResult = (raw: unknown) => {
+      const msg = parseData(raw);
       if (
         !msg ||
-        msg.source !== BRIDGE_SOURCE ||
+        msg.source !== MBASE_BRIDGE_SOURCE ||
         msg.type !== "capability:result" ||
         msg.id !== id
       ) {
@@ -90,8 +103,20 @@ function invokeBridge<T>(
       }
     };
 
-    const timer = setTimeout(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (host === "iframe" && event.source && event.source !== window.parent) {
+        return;
+      }
+      handleResult(event.data);
+    };
+
+    const onAppResult = (event: Event) => {
+      handleResult((event as CustomEvent<unknown>).detail);
+    };
+
+    timer = setTimeout(() => {
       if (done) return;
+      done = true;
       cleanup();
       const err = new Error(
         "[h5-core] 基座未响应（请确认在门户内打开）",
@@ -101,10 +126,26 @@ function invokeBridge<T>(
     }, BRIDGE_TIMEOUT_MS);
 
     window.addEventListener("message", onMessage);
-    window.parent.postMessage(
-      { source: BRIDGE_SOURCE, type: "capability:invoke", id, api, payload: payload || {} },
-      "*",
+    window.addEventListener(
+      MBASE_APP_RESULT_EVENT,
+      onAppResult as EventListener,
     );
+
+    const request: MbaseBridgeRequest = {
+      source: MBASE_BRIDGE_SOURCE,
+      type: "capability:invoke",
+      id,
+      api,
+      payload: payload || {},
+      protocol: MBASE_BRIDGE_PROTOCOL,
+      host,
+    };
+    void postMbaseRequest(host, request).catch((error) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(error);
+    });
   });
 }
 
@@ -152,18 +193,38 @@ interface BridgeLocation {
   latitude: number;
   longitude: number;
   accuracy?: number;
+  altitude?: number;
   address?: string;
   coordinate?: number;
+  coordinateSystem?: Coordinates["coordinateSystem"];
+  rawCoordinateSystem?: Coordinates["rawCoordinateSystem"];
+  provider?: string;
+  platform?: string;
+  sampleCount?: number;
+  timestamp?: number;
+  locatedAt?: number;
 }
 
 /** 经基座桥接获取一次定位并映射为统一 Coordinates */
-async function getCurrentLocation(): Promise<Coordinates> {
-  const loc = await invokeBridge<BridgeLocation>("getLocation");
+async function getCurrentLocation(
+  options?: LocationQueryOptions,
+): Promise<Coordinates> {
+  const loc = await invokeBridge<BridgeLocation>("getLocation", {
+    timeout: options?.timeout,
+    enableHighAccuracy: options?.enableHighAccuracy,
+    coordinateSystem: options?.coordinateSystem,
+  });
   return {
     longitude: loc.longitude,
     latitude: loc.latitude,
+    altitude: loc.altitude,
     accuracy: loc.accuracy ?? 0,
-    timestamp: Date.now(),
+    timestamp: loc.locatedAt ?? loc.timestamp ?? Date.now(),
+    coordinateSystem: loc.coordinateSystem,
+    rawCoordinateSystem: loc.rawCoordinateSystem,
+    provider: loc.provider,
+    platform: loc.platform,
+    sampleCount: loc.sampleCount,
   };
 }
 
@@ -191,8 +252,8 @@ export default createFallbackAdapter("mbase", {
   },
 
   location: {
-    getCurrent(): Promise<Coordinates> {
-      return getCurrentLocation();
+    getCurrent(options?: LocationQueryOptions): Promise<Coordinates> {
+      return getCurrentLocation(options);
     },
 
     /**
@@ -200,9 +261,12 @@ export default createFallbackAdapter("mbase", {
      * 此处降级为「单次取点后回调一次」，返回的取消函数为 no-op，
      * 避免子应用调用 watchPosition 时报错或永久挂起。
      */
-    watchPosition(callback: (pos: Coordinates) => void): () => void {
+    watchPosition(
+      callback: (pos: Coordinates) => void,
+      options?: LocationQueryOptions,
+    ): () => void {
       let cancelled = false;
-      getCurrentLocation()
+      getCurrentLocation(options)
         .then((pos) => {
           if (!cancelled) callback(pos);
         })

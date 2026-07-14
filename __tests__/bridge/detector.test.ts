@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { detectPlatform } from "../../src/bridge/detector";
+import {
+  detectMbaseHost,
+  detectPlatform,
+  isMbaseAppWebView,
+} from "../../src/bridge/detector";
 
 describe("detectPlatform", () => {
   const originalNavigator = globalThis.navigator;
@@ -20,6 +24,7 @@ describe("detectPlatform", () => {
     });
     // 清理 NativeCallJs
     delete (window as any).NativeCallJs;
+    delete (window as any).__MBASE_BRIDGE_HOST__;
     // 还原 window.parent（部分用例会改成嵌入态）
     Object.defineProperty(window, "parent", {
       value: window.self,
@@ -51,6 +56,15 @@ describe("detectPlatform", () => {
       configurable: true,
     });
     expect(detectPlatform()).toBe("dingtalk");
+  });
+
+  it("显式 App 基座标记在顶层 WebView 中解析为 mbase", () => {
+    mockUA("Mozilla/5.0 Html5Plus/1.0 uni-app");
+    (window as any).__MBASE_BRIDGE_HOST__ = "app";
+
+    expect(isMbaseAppWebView()).toBe(true);
+    expect(detectMbaseHost()).toBe("app");
+    expect(detectPlatform()).toBe("mbase");
   });
 
   it("检测微信环境", () => {

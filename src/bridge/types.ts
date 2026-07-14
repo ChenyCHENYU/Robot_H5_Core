@@ -54,6 +54,7 @@ export interface ScanOptions {
 export interface LocationQueryOptions {
   timeout?: number;
   enableHighAccuracy?: boolean;
+  coordinateSystem?: "gcj02" | "wgs84";
 }
 
 export interface Coordinates {
@@ -62,6 +63,16 @@ export interface Coordinates {
   altitude?: number;
   accuracy: number;
   timestamp: number;
+  /** 对外返回坐标系；基座场景通常为 gcj02。 */
+  coordinateSystem?: "gcj02" | "wgs84";
+  /** 原生定位 SDK 实际返回的坐标系。 */
+  rawCoordinateSystem?: "gcj02" | "wgs84";
+  /** 定位服务来源，如 dingtalk、amap、tencent、system。 */
+  provider?: string;
+  /** 产生定位结果的平台，如 iOS、Android、H5。 */
+  platform?: string;
+  /** 为当前结果参与质量筛选的采样次数。 */
+  sampleCount?: number;
 }
 
 export interface NFCData {

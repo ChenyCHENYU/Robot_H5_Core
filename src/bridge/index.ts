@@ -5,8 +5,14 @@ import { mergeAdapter } from "./adapters/stub";
 import type { BridgeAdapter, BridgeAdapterOverrides } from "./types";
 
 export { registerAdapter, getRegisteredAdapters } from "./registry";
-export { detectPlatform, isEmbedded } from "./detector";
-export type { PlatformType } from "./detector";
+export {
+  detectPlatform,
+  detectMbaseHost,
+  isEmbedded,
+  isMbaseAppWebView,
+  MBASE_APP_HOST_PARAM,
+} from "./detector";
+export type { MbaseHostType, PlatformType } from "./detector";
 export { mergeAdapter } from "./adapters/stub";
 export type {
   BridgeAdapter,

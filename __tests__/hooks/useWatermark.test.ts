@@ -46,6 +46,7 @@ describe("useWatermark", () => {
       getContext: vi.fn().mockReturnValue(mockCtx),
       toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["watermarked"]))),
     };
+    (mockCtx as any).canvas = mockCanvas;
     vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
 
     const { addWatermark } = useWatermark({ text: "测试水印" });
@@ -74,6 +75,7 @@ describe("useWatermark", () => {
       getContext: vi.fn().mockReturnValue(mockCtx),
       toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["scaled"]))),
     };
+    (mockCtx as any).canvas = mockCanvas;
     vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
       width: 3000,
       height: 4000,
@@ -108,6 +110,7 @@ describe("useWatermark", () => {
       getContext: vi.fn().mockReturnValue(mockCtx),
       toBlob: vi.fn().mockImplementation((cb) => cb(new Blob(["no-stroke"]))),
     };
+    (mockCtx as any).canvas = mockCanvas;
     vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
 
     const { addWatermark } = useWatermark({ text: "无描边", stroke: false });

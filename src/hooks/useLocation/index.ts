@@ -38,6 +38,7 @@ export function useLocation(options?: UseLocationOptions): UseLocationReturn {
       const pos = await bridge.location.getCurrent({
         timeout: opts.timeout,
         enableHighAccuracy: opts.enableHighAccuracy,
+        coordinateSystem: opts.coordType,
       });
       const result = await runAfterExtensions("useLocation", pos);
       position.value = result;
@@ -55,7 +56,10 @@ export function useLocation(options?: UseLocationOptions): UseLocationReturn {
       (pos) => {
         position.value = pos;
       },
-      { enableHighAccuracy: opts.enableHighAccuracy },
+      {
+        enableHighAccuracy: opts.enableHighAccuracy,
+        coordinateSystem: opts.coordType,
+      },
     );
   }
 

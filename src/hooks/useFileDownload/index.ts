@@ -90,10 +90,10 @@ export function useFileDownload(
     a.style.display = "none";
     document.body.appendChild(a);
     a.click();
-    // 延迟清理，确保下载已触发
+    // 点击已同步触发下载，节点可立即移除；Blob URL 稍后释放。
+    document.body.removeChild(a);
     setTimeout(() => {
       URL.revokeObjectURL(objectUrl);
-      document.body.removeChild(a);
     }, 100);
   }
 

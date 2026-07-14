@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import mbaseAdapter from "../../src/bridge/adapters/mbase";
+import { MBASE_APP_RESULT_EVENT } from "../../src/bridge/transports/mbase";
 
 /**
  * 构造一个会自动回复的「基座」mock：
@@ -23,6 +24,24 @@ function mockBase(reply: (msg: any) => any) {
   return postMessage;
 }
 
+/** 构造 App WebView 宿主：网页通过 uni.postMessage 发起，宿主通过 evalJS 事件回传。 */
+function mockAppBase(reply: (msg: any) => any) {
+  setTopLevel();
+  (window as any).__MBASE_BRIDGE_HOST__ = "app";
+  const postMessage = vi.fn(({ data }: { data: any }) => {
+    queueMicrotask(() => {
+      const res = reply(data);
+      if (res) {
+        window.dispatchEvent(
+          new CustomEvent(MBASE_APP_RESULT_EVENT, { detail: res }),
+        );
+      }
+    });
+  });
+  (window as any).uni = { postMessage };
+  return postMessage;
+}
+
 /** 还原为非嵌入态（顶层窗口） */
 function setTopLevel() {
   Object.defineProperty(window, "parent", {
@@ -43,6 +62,8 @@ function fail(id: string, reason: string) {
 describe("mbase 桥接适配器", () => {
   afterEach(() => {
     setTopLevel();
+    delete (window as any).__MBASE_BRIDGE_HOST__;
+    delete (window as any).uni;
     vi.restoreAllMocks();
   });
 
@@ -65,6 +86,39 @@ describe("mbase 桥接适配器", () => {
       type: "capability:invoke",
       api: "takePhoto",
       payload: { max: 1 },
+      protocol: 1,
+      host: "iframe",
+    });
+  });
+
+  it("App WebView 经 uni.postMessage 调用且保持同一协议", async () => {
+    const post = mockAppBase((raw) =>
+      ok(raw.id, { latitude: 32.2, longitude: 118.7, accuracy: 8 }),
+    );
+
+    const coord = await mbaseAdapter.location.getCurrent({
+      enableHighAccuracy: true,
+      coordinateSystem: "gcj02",
+    });
+
+    expect(coord).toMatchObject({
+      latitude: 32.2,
+      longitude: 118.7,
+      accuracy: 8,
+    });
+    expect(post).toHaveBeenCalledTimes(1);
+    expect(post.mock.calls[0][0]).toMatchObject({
+      data: {
+        source: "mbase-bridge",
+        type: "capability:invoke",
+        api: "getLocation",
+        protocol: 1,
+        host: "app",
+        payload: {
+          enableHighAccuracy: true,
+          coordinateSystem: "gcj02",
+        },
+      },
     });
   });
 
@@ -90,6 +144,31 @@ describe("mbase 桥接适配器", () => {
     mockBase((raw) => ok(raw.id, { latitude: 1, longitude: 2 }));
     const coord = await mbaseAdapter.location.getCurrent();
     expect(coord.accuracy).toBe(0);
+  });
+
+  it("location.getCurrent 保留基座返回的定位质量元数据", async () => {
+    mockBase((raw) =>
+      ok(raw.id, {
+        latitude: 32.2,
+        longitude: 118.7,
+        accuracy: 6,
+        coordinateSystem: "gcj02",
+        rawCoordinateSystem: "gcj02",
+        provider: "amap",
+        platform: "Android",
+        sampleCount: 3,
+        locatedAt: 123456,
+      }),
+    );
+
+    await expect(mbaseAdapter.location.getCurrent()).resolves.toMatchObject({
+      coordinateSystem: "gcj02",
+      rawCoordinateSystem: "gcj02",
+      provider: "amap",
+      platform: "Android",
+      sampleCount: 3,
+      timestamp: 123456,
+    });
   });
 
   it("scanner.scan 透传 text 并映射扫码类型", async () => {

@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.1.0 (2026-07-14)
+
+### Features
+
+- **MbaseBridge**：新增 mbase App WebView 传输，业务 Hook 与钉钉 iframe 保持一致
+- **App SDK**：内置官方 `uni.webview.1.5.8.js`，仅在 App 宿主首次调用时懒加载
+- **定位质量**：透传坐标系、服务来源、平台、采样次数和定位时间等可选元数据
+- **宿主检测**：支持 `mbase_host=app` 显式标记，不改变浏览器、钉钉、微信和独立 Native 的原有识别
+
+### Quality
+
+- 新增 App/iframe transport、协议兼容和定位元数据测试
+- 修复水印测试画布桩及文件下载延迟 DOM 清理问题
+- 229 个测试通过，覆盖率门禁通过
+
 ## v1.0.0 (2026-04-19)
 
 ### Features
