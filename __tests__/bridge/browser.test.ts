@@ -88,7 +88,9 @@ describe("browserBridge", () => {
     expect(pos.accuracy).toBe(10);
     expect(pos.coordinateSystem).toBe("wgs84");
     expect(pos.rawCoordinateSystem).toBe("wgs84");
+    expect(pos.converted).toBe(false);
     expect(pos.provider).toBe("browser-geolocation");
+    expect(pos.sourceApi).toBe("navigator.geolocation");
     expect(pos.platform).toBe("H5");
     expect(pos.sampleCount).toBe(1);
   });
@@ -117,6 +119,7 @@ describe("browserBridge", () => {
     });
     expect(pos.coordinateSystem).toBe("gcj02");
     expect(pos.rawCoordinateSystem).toBe("wgs84");
+    expect(pos.converted).toBe(true);
     expect(pos.longitude).not.toBe(mockPos.coords.longitude);
     expect(pos.latitude).not.toBe(mockPos.coords.latitude);
     expect(Math.abs(pos.longitude - mockPos.coords.longitude)).toBeLessThan(

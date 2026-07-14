@@ -39,7 +39,9 @@ function normalizeBrowserPosition(
     timestamp: pos.timestamp,
     coordinateSystem: converted ? "gcj02" : "wgs84",
     rawCoordinateSystem: "wgs84",
+    converted,
     provider: "browser-geolocation",
+    sourceApi: "navigator.geolocation",
     platform: "H5",
     sampleCount: 1,
   };

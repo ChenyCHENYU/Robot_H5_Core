@@ -67,8 +67,12 @@ export interface Coordinates {
   coordinateSystem?: "gcj02" | "wgs84";
   /** 原生定位 SDK 实际返回的坐标系。 */
   rawCoordinateSystem?: "gcj02" | "wgs84";
+  /** 当前经纬度是否由适配层执行过坐标系转换。 */
+  converted?: boolean;
   /** 定位服务来源，如 dingtalk、amap、tencent、system。 */
   provider?: string;
+  /** 实际产生定位数据的宿主 API，便于跨端诊断。 */
+  sourceApi?: string;
   /** 产生定位结果的平台，如 iOS、Android、H5。 */
   platform?: string;
   /** 为当前结果参与质量筛选的采样次数。 */

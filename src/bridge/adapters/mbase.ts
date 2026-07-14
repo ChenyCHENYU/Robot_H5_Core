@@ -198,7 +198,9 @@ interface BridgeLocation {
   coordinate?: number;
   coordinateSystem?: Coordinates["coordinateSystem"];
   rawCoordinateSystem?: Coordinates["rawCoordinateSystem"];
+  converted?: boolean;
   provider?: string;
+  sourceApi?: string;
   platform?: string;
   sampleCount?: number;
   timestamp?: number;
@@ -222,7 +224,9 @@ async function getCurrentLocation(
     timestamp: loc.locatedAt ?? loc.timestamp ?? Date.now(),
     coordinateSystem: loc.coordinateSystem,
     rawCoordinateSystem: loc.rawCoordinateSystem,
+    converted: loc.converted,
     provider: loc.provider,
+    sourceApi: loc.sourceApi,
     platform: loc.platform,
     sampleCount: loc.sampleCount,
   };
