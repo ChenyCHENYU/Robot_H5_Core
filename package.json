@@ -9,6 +9,10 @@
     "name": "CHENY",
     "email": "ycyplus@gmail.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChenyCHENYU/Robot_H5_Core.git"
+  },
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
