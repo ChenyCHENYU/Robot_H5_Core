@@ -7,6 +7,7 @@ import type {
   ScanOptions,
   LocationQueryOptions,
 } from "../types";
+import { wgs84ToGcj02 } from "../../utils/coord";
 
 /**
  * 浏览器降级适配器
@@ -15,6 +16,34 @@ import type {
 const notSupported = (name: string) => () => {
   throw new Error(`[h5-core] 当前浏览器不支持 ${name}`);
 };
+
+/** Web Geolocation 固定返回 WGS-84；按调用方要求统一映射坐标与元数据。 */
+function normalizeBrowserPosition(
+  pos: GeolocationPosition,
+  requested?: LocationQueryOptions["coordinateSystem"],
+): Coordinates {
+  const rawLongitude = pos.coords.longitude;
+  const rawLatitude = pos.coords.latitude;
+  const [longitude, latitude] =
+    requested === "gcj02"
+      ? wgs84ToGcj02(rawLongitude, rawLatitude)
+      : [rawLongitude, rawLatitude];
+  const converted =
+    longitude !== rawLongitude || latitude !== rawLatitude;
+
+  return {
+    longitude,
+    latitude,
+    altitude: pos.coords.altitude ?? undefined,
+    accuracy: pos.coords.accuracy,
+    timestamp: pos.timestamp,
+    coordinateSystem: converted ? "gcj02" : "wgs84",
+    rawCoordinateSystem: "wgs84",
+    provider: "browser-geolocation",
+    platform: "H5",
+    sampleCount: 1,
+  };
+}
 
 const browserBridge: BridgeAdapter = {
   platform: "browser",
@@ -62,13 +91,9 @@ const browserBridge: BridgeAdapter = {
         }
         navigator.geolocation.getCurrentPosition(
           (pos) =>
-            resolve({
-              longitude: pos.coords.longitude,
-              latitude: pos.coords.latitude,
-              altitude: pos.coords.altitude ?? undefined,
-              accuracy: pos.coords.accuracy,
-              timestamp: pos.timestamp,
-            }),
+            resolve(
+              normalizeBrowserPosition(pos, options?.coordinateSystem),
+            ),
           (err) => reject(new Error(`[h5-core] 定位失败: ${err.message}`)),
           {
             enableHighAccuracy: options?.enableHighAccuracy ?? true,
@@ -84,13 +109,7 @@ const browserBridge: BridgeAdapter = {
     ): () => void {
       const id = navigator.geolocation.watchPosition(
         (pos) =>
-          callback({
-            longitude: pos.coords.longitude,
-            latitude: pos.coords.latitude,
-            altitude: pos.coords.altitude ?? undefined,
-            accuracy: pos.coords.accuracy,
-            timestamp: pos.timestamp,
-          }),
+          callback(normalizeBrowserPosition(pos, options?.coordinateSystem)),
         undefined,
         { enableHighAccuracy: options?.enableHighAccuracy ?? true },
       );

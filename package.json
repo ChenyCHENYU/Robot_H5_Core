@@ -1,6 +1,6 @@
 {
   "name": "@robot-h5/core",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "企业级移动端 H5 通用能力包 — 厚组合层架构",
   "type": "module",
   "sideEffects": false,

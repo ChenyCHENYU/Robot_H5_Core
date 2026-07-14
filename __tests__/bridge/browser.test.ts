@@ -86,6 +86,43 @@ describe("browserBridge", () => {
     expect(pos.longitude).toBe(116.4);
     expect(pos.latitude).toBe(39.9);
     expect(pos.accuracy).toBe(10);
+    expect(pos.coordinateSystem).toBe("wgs84");
+    expect(pos.rawCoordinateSystem).toBe("wgs84");
+    expect(pos.provider).toBe("browser-geolocation");
+    expect(pos.platform).toBe("H5");
+    expect(pos.sampleCount).toBe(1);
+  });
+
+  it("location.getCurrent 按请求将境内 WGS-84 转为 GCJ-02", async () => {
+    const mockPos = {
+      coords: {
+        longitude: 118.74878743489583,
+        latitude: 32.19987223307292,
+        altitude: null,
+        accuracy: 24,
+      },
+      timestamp: 1000,
+    };
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      geolocation: {
+        getCurrentPosition: (success: any) => success(mockPos),
+        watchPosition: vi.fn(),
+        clearWatch: vi.fn(),
+      },
+    });
+
+    const pos = await browserBridge.location.getCurrent({
+      coordinateSystem: "gcj02",
+    });
+    expect(pos.coordinateSystem).toBe("gcj02");
+    expect(pos.rawCoordinateSystem).toBe("wgs84");
+    expect(pos.longitude).not.toBe(mockPos.coords.longitude);
+    expect(pos.latitude).not.toBe(mockPos.coords.latitude);
+    expect(Math.abs(pos.longitude - mockPos.coords.longitude)).toBeLessThan(
+      0.01,
+    );
+    expect(Math.abs(pos.latitude - mockPos.coords.latitude)).toBeLessThan(0.01);
   });
 
   it("location.watchPosition 返回取消函数", () => {

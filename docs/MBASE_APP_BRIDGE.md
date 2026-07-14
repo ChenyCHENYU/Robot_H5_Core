@@ -70,3 +70,9 @@ const { scan } = useQrScanner();
 ```
 
 无需直接访问 `plus`、`uni` 或修改业务调用点。
+
+## 统一坐标输出
+
+- mbase App/钉钉宿主由基座返回目标坐标系，core 透传坐标质量元数据。
+- 独立 H5、微信和 Native 降级路径的 Web Geolocation 原始值固定标记为 WGS-84；当 `coordType` 为 `gcj02` 时，core 在本地转换后返回。
+- 坐标转换只解决坐标基准差异，`accuracy` 仍表示设备定位精度，业务应结合允许半径判断，不应把转换当作精度修正。
