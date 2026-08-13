@@ -9,6 +9,8 @@ export interface MbaseBridgeOptions {
   origin?: string;
   /** App/PDA 原生桥默认等待时间。 */
   appBridgeTimeoutMs?: number;
+  /** 业务域名自托管的官方 uni.webview SDK 地址，仅 App/PDA 首次通信时加载。 */
+  appSdkUrl?: string;
 }
 
 export interface MbaseBridgeRequest {
@@ -75,6 +77,9 @@ export function configureMbaseBridge(options?: MbaseBridgeOptions): void {
     ...(options?.appBridgeTimeoutMs
       ? { appBridgeTimeoutMs: options.appBridgeTimeoutMs }
       : {}),
+    ...(options?.appSdkUrl?.trim()
+      ? { appSdkUrl: options.appSdkUrl.trim() }
+      : {}),
   };
 }
 
@@ -140,19 +145,50 @@ function waitForNativeBridgeReady(timeoutMs: number): Promise<void> {
   });
 }
 
-/** 懒加载随包发布的官方 uni.webview SDK，其他宿主不会执行。 */
+let appSdkLoading: Promise<void> | null = null;
+
+function loadAppSdk(url: string): Promise<void> {
+  if (getUniWebViewBridge()) return Promise.resolve();
+  if (appSdkLoading) return appSdkLoading;
+  appSdkLoading = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = url;
+    script.async = true;
+    script.dataset.robotH5MbaseSdk = "true";
+    script.onload = () => resolve();
+    script.onerror = () => {
+      appSdkLoading = null;
+      reject(
+        transportError(
+          "app_bridge_load_failed",
+          "[h5-core] App WebView 桥接组件加载失败",
+          { url },
+        ),
+      );
+    };
+    document.head.appendChild(script);
+  });
+  return appSdkLoading;
+}
+
+/** 仅在 App/PDA 宿主中按配置地址懒加载官方 uni.webview SDK。 */
 async function ensureUniWebViewBridge(
   timeoutMs: number,
+  options?: MbaseBridgeOptions,
 ): Promise<UniWebViewBridge> {
   const existing = getUniWebViewBridge();
   // 宿主已注入可调用 SDK 时直接复用；兼容不暴露 plus 等全局对象的定制 WebView。
   if (existing) return existing;
 
-  let importedBridge: UniWebViewBridge | null = null;
+  const appSdkUrl = String(options?.appSdkUrl || configuredOptions.appSdkUrl || "").trim();
+  if (!appSdkUrl) {
+    throw transportError(
+      "app_sdk_url_missing",
+      "[h5-core] 未配置 App WebView SDK 地址",
+    );
+  }
   try {
-    const imported = await import("../../vendor/uni.webview.1.5.8.mjs");
-    const candidate = (imported as { default?: UniWebViewBridge }).default;
-    importedBridge = typeof candidate?.postMessage === "function" ? candidate : null;
+    await loadAppSdk(appSdkUrl);
     await waitForNativeBridgeReady(timeoutMs);
   } catch (cause) {
     if (cause instanceof MbaseBridgeError) throw cause;
@@ -163,7 +199,7 @@ async function ensureUniWebViewBridge(
     );
   }
 
-  const loaded = getUniWebViewBridge() || importedBridge;
+  const loaded = getUniWebViewBridge();
   if (!loaded) {
     throw transportError(
       "app_bridge_unavailable",
@@ -221,7 +257,7 @@ export async function waitForMbaseAppBridge(
   if (typeof window === "undefined") {
     throw transportError("bridge_unavailable", "[h5-core] 当前环境不支持 WebView 桥接");
   }
-  await ensureUniWebViewBridge(timeoutMs);
+  await ensureUniWebViewBridge(timeoutMs, configuredOptions);
 }
 
 /** 按宿主类型发送能力请求，两条传输路径保持同一协议载荷。 */
@@ -238,6 +274,7 @@ export async function postMbaseRequest(
       options?.appBridgeTimeoutMs ||
       configuredOptions.appBridgeTimeoutMs ||
       DEFAULT_APP_BRIDGE_TIMEOUT_MS,
+      options,
     );
     bridge.postMessage({ data: request });
     return;
@@ -265,6 +302,7 @@ export async function postMbaseMessage(
       options?.appBridgeTimeoutMs ||
       configuredOptions.appBridgeTimeoutMs ||
       DEFAULT_APP_BRIDGE_TIMEOUT_MS,
+      options,
     );
     bridge.postMessage({ data: message });
     return;

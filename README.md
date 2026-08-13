@@ -183,6 +183,7 @@ export default defineH5Config({
     mbase: {
       origin: import.meta.env.VITE_MBASE_ORIGIN,
       appBridgeTimeoutMs: 6000,
+      appSdkUrl: `${import.meta.env.BASE_URL}vendor/uni.webview.1.5.8.js`,
     },
   },
 });
@@ -203,7 +204,7 @@ const { scan } = useQrScanner();        // 自动经基座扫码
 - **自动识别**：App/PDA 的 `mbase_host=app`、门户的 `from=portal`、兼容旧钉钉 iframe；普通 iframe、浏览器、微信不受影响。
 - **能力范围**：桥接 `camera` / `scanner` / `location`；其余能力（NFC、蓝牙、文件预览、通知）自动降级到浏览器实现。
 - **安全边界**：iframe 请求使用精确 target origin；响应同时校验 `event.source` 与 `event.origin`。
-- **App/PDA**：官方 `uni.webview` SDK 随 Core 发布，只在 App 宿主首次通信时懒加载，不进入普通 H5 的运行路径。
+- **App/PDA**：官方 `uni.webview` SDK 应由业务域名自托管，Core 只在 App 宿主首次通信时按 `appSdkUrl` 插入脚本；普通 H5 主包和运行路径均不包含 SDK。
 - **桥接协议**（与基座约定，子应用 → 基座）：
   - 请求：`{ source: "mbase-bridge", type: "capability:invoke", id, api, payload }`
   - 响应：`{ source: "mbase-bridge", type: "capability:result", id, ok, data?, error?, reason? }`

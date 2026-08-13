@@ -108,21 +108,30 @@ describe("mbase transport", () => {
     expect(postMessage).toHaveBeenCalledWith({ data: payload });
   });
 
-  it("App transport 可懒加载内置官方 SDK", async () => {
-    const evalJS = vi.fn();
-    const plus = {
-      webview: {
-        currentWebview: () => ({ parent: () => ({ id: "portal-page" }) }),
-        getWebviewById: () => null,
-        getLaunchWebview: () => ({ evalJS }),
-      },
-    };
-    (window as any).plus = plus;
-    (globalThis as any).plus = plus;
+  it("App transport 仅在调用时加载配置的自托管官方 SDK", async () => {
+    const postMessage = vi.fn();
+    const appendChild = vi.spyOn(document.head, "appendChild").mockImplementation(node => {
+      const script = node as HTMLScriptElement;
+      (window as any).uni = { postMessage };
+      (window as any).plus = {};
+      queueMicrotask(() => script.onload?.(new Event("load")));
+      return node;
+    });
 
-    await postMbaseRequest("app", request("app"));
+    await postMbaseRequest("app", request("app"), {
+      appSdkUrl: "/vendor/uni.webview.1.5.8.js",
+    });
 
-    expect(evalJS).toHaveBeenCalledOnce();
-    expect(evalJS.mock.calls[0][0]).toContain("WEB_INVOKE_APPSERVICE");
+    expect(appendChild).toHaveBeenCalledOnce();
+    expect((appendChild.mock.calls[0][0] as HTMLScriptElement).src).toContain(
+      "/vendor/uni.webview.1.5.8.js",
+    );
+    expect(postMessage).toHaveBeenCalledOnce();
+  });
+
+  it("App 未注入 SDK 且未配置地址时返回稳定错误码", async () => {
+    await expect(postMbaseRequest("app", request("app"))).rejects.toMatchObject({
+      code: "app_sdk_url_missing",
+    });
   });
 });

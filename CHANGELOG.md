@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.1.4 (2026-08-13)
+
+### Fixes
+
+- App/PDA SDK 改为按 `bridge.mbase.appSdkUrl` 运行时加载，避免消费方构建器把动态模块合入普通 H5 主包
+- SDK 地址缺失时返回稳定错误码 `app_sdk_url_missing`，不静默请求公共网络
+
+### Quality
+
+- 增加自托管 SDK 延迟加载与缺失配置测试；Core 包不再携带或执行平台 SDK 源码
+
 ## v1.1.3 (2026-08-13)
 
 ### Fixes
