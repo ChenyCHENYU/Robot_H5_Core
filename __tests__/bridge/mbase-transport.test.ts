@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   MBASE_BRIDGE_PROTOCOL,
   MBASE_BRIDGE_SOURCE,
+  configureMbaseBridge,
   postMbaseRequest,
   type MbaseBridgeRequest,
 } from "../../src/bridge/transports/mbase";
@@ -33,17 +34,17 @@ describe("mbase transport", () => {
     delete (window as any).uni;
     delete (window as any).plus;
     delete (globalThis as any).plus;
+    configureMbaseBridge();
     vi.restoreAllMocks();
   });
 
-  it("iframe transport 向父窗口发送协议请求", async () => {
+  it("iframe transport 缺少可信 origin 时拒绝发送", async () => {
     const postMessage = vi.fn();
     setParent({ postMessage });
-    const payload = request("iframe");
-
-    await postMbaseRequest("iframe", payload);
-
-    expect(postMessage).toHaveBeenCalledWith(payload, "*");
+    await expect(
+      postMbaseRequest("iframe", request("iframe")),
+    ).rejects.toMatchObject({ code: "mbase_origin_missing" });
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it("iframe transport 使用 referrer 的父级 origin", async () => {
@@ -61,6 +62,21 @@ describe("mbase transport", () => {
       payload,
       "https://portal.example.com",
     );
+  });
+
+  it("iframe transport 支持显式可信 origin", async () => {
+    const postMessage = vi.fn();
+    setParent({ postMessage });
+    configureMbaseBridge({ origin: "https://portal.example.com/base" });
+    const payload = request("iframe");
+
+    await postMbaseRequest("iframe", payload);
+
+    expect(postMessage).toHaveBeenCalledWith(payload, "https://portal.example.com");
+  });
+
+  it("拒绝把通配符配置为可信 origin", () => {
+    expect(() => configureMbaseBridge({ origin: "*" })).toThrow(/禁止配置为/);
   });
 
   it("iframe 顶层页面立即返回稳定错误码", async () => {

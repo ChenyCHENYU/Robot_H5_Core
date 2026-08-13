@@ -3,6 +3,7 @@ import {
   detectMbaseHost,
   detectPlatform,
   isMbaseAppWebView,
+  resetMbaseHostCache,
 } from "../../src/bridge/detector";
 
 describe("detectPlatform", () => {
@@ -17,6 +18,7 @@ describe("detectPlatform", () => {
   }
 
   afterEach(() => {
+    resetMbaseHostCache();
     Object.defineProperty(globalThis, "navigator", {
       value: originalNavigator,
       writable: true,
@@ -46,6 +48,17 @@ describe("detectPlatform", () => {
       configurable: true,
     });
     expect(detectPlatform()).toBe("mbase");
+  });
+
+  it("普通第三方 iframe 不会误判为 mbase", () => {
+    mockUA("Mozilla/5.0 Chrome/120");
+    Object.defineProperty(window, "parent", {
+      value: {},
+      writable: true,
+      configurable: true,
+    });
+    expect(detectMbaseHost()).toBeNull();
+    expect(detectPlatform()).toBe("browser");
   });
 
   it("钉钉内顶层页面（非嵌入）仍为 dingtalk", () => {

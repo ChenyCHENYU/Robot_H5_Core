@@ -1,12 +1,5 @@
 import { createFallbackAdapter } from "./stub";
-import { detectMbaseHost } from "../detector";
-import {
-  MBASE_APP_RESULT_EVENT,
-  MBASE_BRIDGE_PROTOCOL,
-  MBASE_BRIDGE_SOURCE,
-  postMbaseRequest,
-  type MbaseBridgeRequest,
-} from "../transports/mbase";
+import { invokeMbaseCapability } from "../mbase";
 import type {
   Coordinates,
   LocationQueryOptions,
@@ -30,124 +23,6 @@ import type {
  * 仅 camera / scanner / location 走桥接；nfc / bluetooth / file / notification
  * 沿用 browser 降级实现（基座未代理这些能力）。
  */
-
-/** 桥接请求默认超时（拍照需用户操作，给足时间） */
-const BRIDGE_TIMEOUT_MS = 60_000;
-
-/** 生成桥接请求唯一 id */
-function genId(): string {
-  return `cap_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/** 安全解析 postMessage 数据（对象直接用，字符串尝试 JSON） */
-function parseData(data: unknown): Record<string, any> | null {
-  if (data && typeof data === "object") return data as Record<string, any>;
-  if (typeof data === "string") {
-    try {
-      return JSON.parse(data);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-/**
- * 向基座发起一次能力调用，返回 Promise。
- * 未嵌入基座（顶层窗口）时立即拒绝，避免向自身 postMessage 后无限等待。
- */
-function invokeBridge<T>(
-  api: string,
-  payload?: Record<string, unknown>,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const host = detectMbaseHost();
-    if (!host || typeof window === "undefined") {
-      reject(new Error("[h5-core] 未嵌入基座(mbase)，无法通过桥接调用原生能力"));
-      return;
-    }
-
-    const id = genId();
-    let done = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      window.removeEventListener("message", onMessage);
-      window.removeEventListener(
-        MBASE_APP_RESULT_EVENT,
-        onAppResult as EventListener,
-      );
-      if (timer) clearTimeout(timer);
-    };
-
-    const handleResult = (raw: unknown) => {
-      const msg = parseData(raw);
-      if (
-        !msg ||
-        msg.source !== MBASE_BRIDGE_SOURCE ||
-        msg.type !== "capability:result" ||
-        msg.id !== id
-      ) {
-        return;
-      }
-      done = true;
-      cleanup();
-      if (msg.ok) {
-        resolve(msg.data as T);
-      } else {
-        const err = new Error(
-          msg.reason || msg.error || "[h5-core] 基座能力调用失败",
-        ) as Error & { code?: string };
-        err.code = msg.error;
-        reject(err);
-      }
-    };
-
-    const onMessage = (event: MessageEvent) => {
-      if (host === "iframe" && event.source && event.source !== window.parent) {
-        return;
-      }
-      handleResult(event.data);
-    };
-
-    const onAppResult = (event: Event) => {
-      handleResult((event as CustomEvent<unknown>).detail);
-    };
-
-    timer = setTimeout(() => {
-      if (done) return;
-      done = true;
-      cleanup();
-      const err = new Error(
-        "[h5-core] 基座未响应（请确认在门户内打开）",
-      ) as Error & { code?: string };
-      err.code = "timeout";
-      reject(err);
-    }, BRIDGE_TIMEOUT_MS);
-
-    window.addEventListener("message", onMessage);
-    window.addEventListener(
-      MBASE_APP_RESULT_EVENT,
-      onAppResult as EventListener,
-    );
-
-    const request: MbaseBridgeRequest = {
-      source: MBASE_BRIDGE_SOURCE,
-      type: "capability:invoke",
-      id,
-      api,
-      payload: payload || {},
-      protocol: MBASE_BRIDGE_PROTOCOL,
-      host,
-    };
-    void postMbaseRequest(host, request).catch((error) => {
-      if (done) return;
-      done = true;
-      cleanup();
-      reject(error);
-    });
-  });
-}
 
 /**
  * 规整钉钉返回的 base64：
@@ -211,7 +86,7 @@ interface BridgeLocation {
 async function getCurrentLocation(
   options?: LocationQueryOptions,
 ): Promise<Coordinates> {
-  const loc = await invokeBridge<BridgeLocation>("getLocation", {
+  const loc = await invokeMbaseCapability<BridgeLocation>("getLocation", {
     timeout: options?.timeout,
     enableHighAccuracy: options?.enableHighAccuracy,
     coordinateSystem: options?.coordinateSystem,
@@ -235,7 +110,7 @@ async function getCurrentLocation(
 export default createFallbackAdapter("mbase", {
   camera: {
     async capture(): Promise<File> {
-      const data = await invokeBridge<{ images?: string[] }>("takePhoto", {
+      const data = await invokeMbaseCapability<{ images?: string[] }>("takePhoto", {
         max: 1,
       });
       const images = data?.images || [];
@@ -248,7 +123,7 @@ export default createFallbackAdapter("mbase", {
 
   scanner: {
     async scan(options?: ScanOptions): Promise<string> {
-      const data = await invokeBridge<{ text?: string }>("scan", {
+      const data = await invokeMbaseCapability<{ text?: string }>("scan", {
         type: toDingTalkScanType(options?.type),
       });
       return data?.text || "";

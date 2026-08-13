@@ -1,4 +1,5 @@
 import type { BridgeAdapterOverrides } from "../bridge/types";
+import type { MbaseBridgeOptions } from "../bridge/transports/mbase";
 
 /**
  * 全局配置类型定义
@@ -28,6 +29,8 @@ export interface BridgeConfig {
   wechat?: { appId: string; jsApiList?: string[] };
   /** 项目侧 SDK 能力覆盖 — 未提供的能力自动降级到浏览器实现 */
   overrides?: BridgeAdapterOverrides;
+  /** wl-mbase 宿主桥接配置；iframe 场景建议显式配置门户 origin。 */
+  mbase?: MbaseBridgeOptions;
 }
 
 export interface UploadConfig {

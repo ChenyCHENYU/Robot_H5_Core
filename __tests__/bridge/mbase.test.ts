@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import mbaseAdapter from "../../src/bridge/adapters/mbase";
-import { MBASE_APP_RESULT_EVENT } from "../../src/bridge/transports/mbase";
+import { resetMbaseHostCache } from "../../src/bridge/detector";
+import {
+  configureMbaseBridge,
+  MBASE_APP_RESULT_EVENT,
+} from "../../src/bridge/transports/mbase";
 
 /**
  * 构造一个会自动回复的「基座」mock：
@@ -8,16 +12,31 @@ import { MBASE_APP_RESULT_EVENT } from "../../src/bridge/transports/mbase";
  * 并通过 window 派发 message 事件，模拟基座完成 JSAPI 调用后的回传。
  */
 function mockBase(reply: (msg: any) => any) {
+  Object.defineProperty(globalThis, "navigator", {
+    value: { userAgent: "Mozilla/5.0 DingTalk/7.0" },
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(document, "referrer", {
+    value: "https://portal.example.com/pages/webview",
+    configurable: true,
+  });
+  const parentHost = { postMessage: undefined as unknown };
   const postMessage = vi.fn((raw: any) => {
     queueMicrotask(() => {
       const res = reply(raw);
       if (res) {
-        window.dispatchEvent(new MessageEvent("message", { data: res }));
+        window.dispatchEvent(new MessageEvent("message", {
+          data: res,
+          origin: "https://portal.example.com",
+          source: parentHost as unknown as WindowProxy,
+        }));
       }
     });
   });
+  parentHost.postMessage = postMessage;
   Object.defineProperty(window, "parent", {
-    value: { postMessage },
+    value: parentHost,
     writable: true,
     configurable: true,
   });
@@ -28,6 +47,7 @@ function mockBase(reply: (msg: any) => any) {
 function mockAppBase(reply: (msg: any) => any) {
   setTopLevel();
   (window as any).__MBASE_BRIDGE_HOST__ = "app";
+  (window as any).plus = {};
   const postMessage = vi.fn(({ data }: { data: any }) => {
     queueMicrotask(() => {
       const res = reply(data);
@@ -61,9 +81,13 @@ function fail(id: string, reason: string) {
 
 describe("mbase 桥接适配器", () => {
   afterEach(() => {
+    resetMbaseHostCache();
+    configureMbaseBridge();
     setTopLevel();
     delete (window as any).__MBASE_BRIDGE_HOST__;
     delete (window as any).uni;
+    delete (window as any).plus;
+    delete (document as any).referrer;
     vi.restoreAllMocks();
   });
 

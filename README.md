@@ -98,11 +98,11 @@ const { position, getCurrentPosition } = useLocation();
 | `BrowserBridge` | 浏览器 | 完整实现，Web 标准 API 降级 |
 | `NativeBridge` | APP WebView | 项目侧通过 `overrides` 注入原生 SDK |
 | `DingtalkBridge` | 钉钉 | 项目侧通过 `overrides` 注入 dingtalk-jsapi |
-| `MbaseBridge` | 钉钉内嵌入基座(mbase) | 子应用经基座 `postMessage` 桥接拍照/扫码/定位，**自动识别，零配置** |
+| `MbaseBridge` | wl-mbase（钉钉 iframe、App/PDA WebView） | 子应用经统一协议桥接拍照/扫码/定位及扩展能力 |
 | `WechatBridge` | 微信/企微 | 项目侧通过 `overrides` 注入 weixin-js-sdk |
 
-> **mbase 自动识别**：当应用以 iframe 形式嵌入门户基座、且运行在钉钉客户端内时，
-> `platform: "auto"` 会自动解析为 `mbase`（钉钉顶层页面仍为 `dingtalk`，其余环境不受影响）。
+> **mbase 自动识别**：`mbase_host=app` 识别 App/PDA；`from=portal` 或钉钉 iframe
+> 识别门户嵌入态。普通第三方 iframe 不会误判。钉钉顶层页仍为 `dingtalk`，微信和独立浏览器不受影响。
 > 详见下文 [基座嵌入场景（mbase）](#基座嵌入场景mbase)。
 
 
@@ -170,14 +170,29 @@ export default defineH5Config({
 
 ### 基座嵌入场景（mbase）
 
-当本应用作为**子应用**以 iframe 形式嵌入移动端门户**基座(mbase)**、且运行在钉钉客户端内时：
-钉钉 WebView 安全策略**禁止 iframe 子页面直接调用拍照/定位 JSAPI**，只有基座（钉钉入口页）有调用权限。
+当应用由 wl-mbase 承载时，宿主可能是钉钉 iframe，也可能是 App/PDA WebView。业务页面不应直接判断设备或调用宿主私有对象，统一经 Core 发起能力请求。
 
-`MbaseBridge` 自动处理这一场景 —— 子应用通过 `postMessage` 请求基座代为调用，基座完成 `dd.config`
-鉴权后执行并回传结果，**业务代码无感知**：
+先在 `src/h5.config.ts` 配置可信门户 origin。App/PDA 不使用该 origin 发送消息，但保留同一配置可让多端构建共用一份代码：
 
 ```ts
-// 无需任何额外配置，platform: "auto"（默认）即可自动识别
+import { defineH5Config } from "@robot-h5/core";
+
+export default defineH5Config({
+  bridge: {
+    platform: "auto",
+    mbase: {
+      origin: import.meta.env.VITE_MBASE_ORIGIN,
+      appBridgeTimeoutMs: 6000,
+    },
+  },
+});
+```
+
+`origin` 必须是完整来源（协议 + 域名 + 可选端口），禁止配置 `*`。未配置时 Core 会尝试使用 `document.referrer`；两者都不可用时以 `mbase_origin_missing` 明确拒绝，不会退回不安全的通配符。
+
+拍照、扫码、定位继续使用通用 Hook，业务代码无感知：
+
+```ts
 import { useCamera, useLocation, useQrScanner } from "@robot-h5/core";
 
 const { capture } = useCamera();        // 自动经基座拍照
@@ -185,13 +200,39 @@ const { getCurrentPosition } = useLocation();  // 自动经基座定位
 const { scan } = useQrScanner();        // 自动经基座扫码
 ```
 
-- **自动识别**：钉钉 + iframe 嵌入 → `mbase`；钉钉顶层页面 → `dingtalk`；浏览器/微信等不受影响。
+- **自动识别**：App/PDA 的 `mbase_host=app`、门户的 `from=portal`、兼容旧钉钉 iframe；普通 iframe、浏览器、微信不受影响。
 - **能力范围**：桥接 `camera` / `scanner` / `location`；其余能力（NFC、蓝牙、文件预览、通知）自动降级到浏览器实现。
+- **安全边界**：iframe 请求使用精确 target origin；响应同时校验 `event.source` 与 `event.origin`。
+- **App/PDA**：官方 `uni.webview` SDK 随 Core 发布，只在 App 宿主首次通信时懒加载，不进入普通 H5 的运行路径。
 - **桥接协议**（与基座约定，子应用 → 基座）：
   - 请求：`{ source: "mbase-bridge", type: "capability:invoke", id, api, payload }`
   - 响应：`{ source: "mbase-bridge", type: "capability:result", id, ok, data?, error?, reason? }`
   - `api`：`takePhoto` · `scan` · `getLocation`
 - **未嵌入基座**时调用会立即拒绝（而非挂起），便于上层降级提示。
+
+Core 尚未封装成 Hook 的基座能力（如相册选择）使用统一扩展入口：
+
+```ts
+import {
+  getMbaseTransportStatus,
+  invokeMbaseCapability,
+  MbaseBridgeError,
+} from "@robot-h5/core/bridge";
+
+try {
+  const result = await invokeMbaseCapability<{ files: unknown[] }>(
+    "chooseImage",
+    { source: "album", max: 1 },
+  );
+  console.info(result.files);
+} catch (error) {
+  const bridgeError = error as MbaseBridgeError;
+  console.error(bridgeError.code, bridgeError.message, bridgeError.details);
+  console.table(getMbaseTransportStatus());
+}
+```
+
+职责边界：Core 负责宿主识别、安全传输、超时和稳定错误；模板负责路由标题与返回协议；业务负责页面交互、上传地址和附件关联规则。
 
 ### 自定义适配器
 

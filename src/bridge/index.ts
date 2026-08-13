@@ -11,8 +11,24 @@ export {
   isEmbedded,
   isMbaseAppWebView,
   MBASE_APP_HOST_PARAM,
+  MBASE_PORTAL_FROM_PARAM,
+  MBASE_PORTAL_FROM_VALUE,
+  MBASE_PORTAL_SESSION_KEY,
+  resetMbaseHostCache,
 } from "./detector";
 export type { MbaseHostType, PlatformType } from "./detector";
+export { invokeMbaseCapability } from "./mbase";
+export type { MbaseCapabilityOptions } from "./mbase";
+export {
+  configureMbaseBridge,
+  getMbaseBridgeOptions,
+  getMbaseTransportStatus,
+  MbaseBridgeError,
+  postMbaseMessage,
+  resolveMbaseOrigin,
+  waitForMbaseAppBridge,
+} from "./transports/mbase";
+export type { MbaseBridgeOptions } from "./transports/mbase";
 export { mergeAdapter } from "./adapters/stub";
 export type {
   BridgeAdapter,

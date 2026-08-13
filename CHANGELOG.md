@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.1.2 (2026-08-13)
+
+### Features
+
+- **统一扩展能力入口**：新增 `invokeMbaseCapability`，供相册等尚未封装为 Hook 的 wl-mbase v1 能力复用
+- **桥接诊断**：新增 `getMbaseTransportStatus`、`MbaseBridgeError`、`postMbaseMessage` 与 App 桥等待出口
+- **配置收口**：`bridge.mbase.origin` 支持为所有 iframe 请求配置精确门户来源
+
+### Security
+
+- iframe 响应同时校验父窗口引用与精确 origin，移除 `postMessage('*')` 兜底
+- 普通第三方 iframe 不再误判为 mbase；保留钉钉 iframe、`from=portal` 与 `mbase_host=app` 兼容链路
+
+### Quality
+
+- App/PDA 官方 `uni.webview` SDK 继续按需懒加载，不改变浏览器、微信、独立 H5 运行路径
+- 类型检查、生产构建及 234 个测试通过
+
 ## v1.1.1 (2026-07-14)
 
 ### Fixes

@@ -12,7 +12,14 @@ export {
   resetBridge,
   registerAdapter,
   mergeAdapter,
+  invokeMbaseCapability,
+  configureMbaseBridge,
+  getMbaseTransportStatus,
+  MbaseBridgeError,
+  postMbaseMessage,
+  waitForMbaseAppBridge,
 } from "./bridge";
+export type { MbaseBridgeOptions, MbaseCapabilityOptions } from "./bridge";
 export { extendHook } from "./hooks/extend";
 
 // Hooks

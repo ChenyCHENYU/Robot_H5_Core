@@ -2,6 +2,7 @@ import { inject, type App, type InjectionKey } from "vue";
 import { defaults } from "./defaults";
 import type { AppConfig } from "./types";
 import { createBridge, BRIDGE_KEY } from "../bridge";
+import { configureMbaseBridge } from "../bridge/transports/mbase";
 
 const CONFIG_KEY: InjectionKey<AppConfig> = Symbol("robot-h5-config");
 
@@ -50,6 +51,7 @@ export function defineAppConfig(
 ): void {
   const merged = deepMerge(defaults, config);
   app.provide(CONFIG_KEY, merged);
+  configureMbaseBridge(merged.bridge?.mbase);
 
   const bridge = createBridge(
     merged.bridge?.platform,
