@@ -5,9 +5,13 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   build: {
     lib: {
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: {
+        index: resolve(__dirname, "src/index.ts"),
+        "bridge/index": resolve(__dirname, "src/bridge/index.ts"),
+        "hooks/index": resolve(__dirname, "src/hooks/index.ts"),
+        "utils/index": resolve(__dirname, "src/utils/index.ts"),
+      },
       formats: ["es"],
-      fileName: "index",
     },
     rollupOptions: {
       external: ["vue"],
