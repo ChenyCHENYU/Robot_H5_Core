@@ -22,8 +22,9 @@ import type {
  *   请求：{ source:'mbase-bridge', type:'capability:invoke', id, api, payload }
  *   响应：{ source:'mbase-bridge', type:'capability:result', id, ok, data?, error?, reason? }
  *
- * 仅 camera / scanner / location 走桥接；nfc / bluetooth / file / notification
- * 沿用 browser 降级实现（基座未代理这些能力）。
+ * 桥接能力：camera / scanner / location / file(preview) / nfc(read)；
+ * signature / audioRecord / fileDownload 由对应 Hook 以 opt-in 方式委托基座。
+ * bluetooth / notification / nfc(write) 基座尚未代理，沿用 browser 降级实现。
  */
 
 /** core 扫码类型 → 钉钉 scan 类型 */
