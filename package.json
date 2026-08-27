@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "@robot-h5/core",
-  "version": "1.1.4",
-  "description": "企业级移动端 H5 通用能力包 — 厚组合层架构",
+  "version": "1.2.0",
+  "description": "浼佷笟绾хЩ鍔ㄧ H5 閫氱敤鑳藉姏鍖?鈥?鍘氱粍鍚堝眰鏋舵瀯",
   "type": "module",
   "sideEffects": false,
   "license": "UNLICENSED",
