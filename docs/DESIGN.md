@@ -79,7 +79,7 @@
 | 10  | `useBluetooth`        | 蓝牙设备连接                       | ✅   |
 | 11  | `useOfflineStorage`   | IndexedDB + 在线自动同步           | ✅   |
 | 12  | `usePushNotification` | 统一推送                           | ✅   |
-| 13  | `useWatermark`        | 拍照水印（时间+地点+人员）         | ✅   |
+| 13  | `useWatermark`        | 本地 File 文字水印（预览/非权威）  | ✅   |
 | 14  | `usePermission`       | 系统权限请求/检查                  | ✅   |
 | 15  | `useFileDownload`     | 文件下载 + 流式进度               | ✅   |
 

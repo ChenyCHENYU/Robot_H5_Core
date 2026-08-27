@@ -11,3 +11,18 @@ export { getFileType, formatFileSize } from "./file";
 export { isPhone, isIdCard, isEmail, isCreditCode } from "./validate";
 
 export { formatDate, formatMoney } from "./format";
+
+export {
+  WATERMARK_POLICY_FORM_FIELD,
+  WatermarkPolicyError,
+  buildWatermarkFormData,
+  normalizeServerWatermarkPolicy,
+} from "./watermark";
+export type {
+  NormalizedServerWatermarkPolicy,
+  ServerWatermarkLocation,
+  ServerWatermarkPolicy,
+  WatermarkContextValue,
+  WatermarkImageSource,
+  WatermarkPolicyErrorCode,
+} from "./watermark";

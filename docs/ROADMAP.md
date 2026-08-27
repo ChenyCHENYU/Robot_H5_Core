@@ -52,7 +52,8 @@
 
 - [ ] useAudioRecorder：语音转文字（ASR）扩展
 - [ ] useFileUpload：秒传（hash 校验）
-- [ ] useWatermark：多行水印 / 图片水印
+- [x] useWatermark：多行文字水印、旧 WebView 降级、尺寸/格式保护
+- [ ] useWatermark：Logo 等图片水印
 - [ ] useSignature：笔锋效果 / 压感支持
 
 ## 文档计划

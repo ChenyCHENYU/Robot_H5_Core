@@ -61,6 +61,10 @@ export type { UsePushNotificationReturn } from "../hooks/usePushNotification";
 export type {
   UseWatermarkOptions,
   UseWatermarkReturn,
+  WatermarkErrorCode,
+  WatermarkFailureMode,
+  WatermarkMode,
+  WatermarkPosition,
 } from "../hooks/useWatermark";
 export type {
   UsePermissionReturn,

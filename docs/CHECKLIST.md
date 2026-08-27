@@ -33,7 +33,8 @@
 - ✅ useBluetooth — 蓝牙
 - ✅ useOfflineStorage — 离线存储 + 自动关闭连接 + 在线同步队列
 - ✅ usePushNotification — 推送
-- ✅ useWatermark — 水印（保留原图格式）
+- ✅ useWatermark — 本地 File 多行水印（旧 WebView 降级、尺寸/格式保护）
+- ✅ buildWatermarkFormData — 跨端服务端水印策略（关闭时零新增字段）
 - ✅ usePermission — 权限查询/请求/状态监听
 - ✅ useFileDownload — 文件下载 + 流式进度 + 取消
 

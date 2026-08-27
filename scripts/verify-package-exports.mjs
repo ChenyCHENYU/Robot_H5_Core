@@ -25,6 +25,10 @@ for (const name of [
 
 assert.equal(typeof bridge.MbaseBridgeError, "function");
 assert.equal(typeof hooks.useCamera, "function");
+assert.equal(typeof hooks.useWatermark, "function");
+assert.equal(typeof hooks.WatermarkError, "function");
 assert.equal(typeof utils.compressImage, "function");
+assert.equal(typeof utils.buildWatermarkFormData, "function");
+assert.equal(typeof topLevel.buildWatermarkFormData, "function");
 
 console.log("npm 子路径运行时导出校验通过：主入口、bridge、hooks、utils 一致");

@@ -11,7 +11,8 @@ vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
 
 describe("useWatermark", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     // Reset createImageBitmap mock
     vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
       width: 800,
@@ -124,11 +125,154 @@ describe("useWatermark", () => {
       "createImageBitmap",
       vi.fn().mockRejectedValue(new Error("解码失败")),
     );
+    vi.spyOn(URL, "createObjectURL").mockImplementation(() => {
+      throw new Error("fallback 解码失败");
+    });
     const { addWatermark, error } = useWatermark({ text: "test" });
     const file = new File(["bad"], "bad.jpg", { type: "image/jpeg" });
     const result = await addWatermark(file);
     expect(result).toBeNull();
-    expect(error.value?.message).toBe("解码失败");
+    expect(error.value?.code).toBe("decode_failed");
+    expect(error.value?.message).toContain("图片解码失败");
+  });
+
+  it("failureMode=throw 时以稳定错误码阻止无水印结果继续上传", async () => {
+    const { addWatermark } = useWatermark({
+      text: "test",
+      tileGap: 0,
+      failureMode: "throw",
+    });
+    const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+
+    await expect(addWatermark(file)).rejects.toMatchObject({
+      name: "WatermarkError",
+      code: "invalid_options",
+    });
+  });
+
+  it("支持多行水印", async () => {
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 100 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
+    };
+    const mockCanvas = {
+      width: 800,
+      height: 600,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi
+        .fn()
+        .mockImplementation(cb => cb(new Blob(["watermarked"], { type: "image/jpeg" }))),
+    };
+    (mockCtx as any).canvas = mockCanvas;
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
+
+    const { addWatermark } = useWatermark({ text: ["气体检测", "上传时间"] });
+    const file = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    await addWatermark(file);
+
+    expect(mockCtx.fillText).toHaveBeenCalledTimes(2);
+  });
+
+  it("旧 WebView 不支持 createImageBitmap 时回退到 Image 解码", async () => {
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn().mockRejectedValue(new Error("unsupported")),
+    );
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:watermark-test");
+    const revokeObjectUrl = vi.spyOn(URL, "revokeObjectURL");
+
+    class MockImage {
+      decoding = "";
+      naturalWidth = 640;
+      naturalHeight = 480;
+      width = 640;
+      height = 480;
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+
+    vi.stubGlobal("Image", MockImage);
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 100 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
+    };
+    const mockCanvas = {
+      width: 640,
+      height: 480,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi
+        .fn()
+        .mockImplementation(cb => cb(new Blob(["fallback"], { type: "image/jpeg" }))),
+    };
+    (mockCtx as any).canvas = mockCanvas;
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
+
+    const { addWatermark } = useWatermark({ text: "兼容水印" });
+    const result = await addWatermark(
+      new File(["img"], "legacy.jpg", { type: "image/jpeg" }),
+    );
+
+    expect(result).toBeInstanceOf(File);
+    expect(mockCtx.drawImage).toHaveBeenCalledOnce();
+    expect(revokeObjectUrl).toHaveBeenCalledWith("blob:watermark-test");
+  });
+
+  it("小图无法容纳多行水印时明确失败而不是裁切", async () => {
+    vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({
+      width: 20,
+      height: 20,
+      close: vi.fn(),
+    }));
+    const mockCtx = {
+      drawImage: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 10 }),
+      globalAlpha: 1,
+      font: "",
+      fillStyle: "",
+      strokeStyle: "",
+      lineWidth: 1,
+      lineJoin: "miter",
+    };
+    const mockCanvas = {
+      width: 20,
+      height: 20,
+      getContext: vi.fn().mockReturnValue(mockCtx),
+      toBlob: vi.fn(),
+    };
+    (mockCtx as any).canvas = mockCanvas;
+    vi.spyOn(document, "createElement").mockReturnValue(mockCanvas as any);
+
+    const { addWatermark } = useWatermark({
+      text: ["1", "2", "3", "4", "5", "6"],
+      failureMode: "throw",
+    });
+
+    await expect(
+      addWatermark(new File(["img"], "small.jpg", { type: "image/jpeg" })),
+    ).rejects.toMatchObject({ code: "invalid_options" });
+    expect(mockCanvas.toBlob).not.toHaveBeenCalled();
   });
 
   it("支持不同水印位置", () => {

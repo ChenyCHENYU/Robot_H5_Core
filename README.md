@@ -88,7 +88,7 @@ const { position, getCurrentPosition } = useLocation();
 | `useBluetooth` | 蓝牙设备连接 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useBluetooth/README.md) |
 | `useOfflineStorage` | IndexedDB 离线存储 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useOfflineStorage/README.md) |
 | `usePushNotification` | 推送通知 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/usePushNotification/README.md) |
-| `useWatermark` | 图片水印（保留原图格式） | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useWatermark/README.md) |
+| `useWatermark` | 多行图片水印、旧 WebView 降级与尺寸保护 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/useWatermark/README.md) |
 | `usePermission` | 系统权限查询/请求/监听 | [README](https://github.com/ChenyCHENYU/Robot_H5_Core/blob/main/src/hooks/usePermission/README.md) |
 
 ### Bridge 适配器
@@ -116,6 +116,9 @@ const { position, getCurrentPosition } = useLocation();
 | `file` | `getFileType` · `formatFileSize` |
 | `validate` | `isPhone` · `isIdCard` · `isEmail` · `isCreditCode` |
 | `format` | `formatDate` · `formatMoney` |
+| `watermark` | `buildWatermarkFormData` · `normalizeServerWatermarkPolicy` |
+
+跨钉钉、App/PDA、H5 的正式图片水印使用服务端权威策略；客户端关闭水印时不会产生协议字段。子应用代码、`watermarkPolicy` multipart 契约、Spring Boot 参考结构、历史图片衍生和验收要求见[图片水印与服务端接入](./docs/WATERMARK_INTEGRATION.md)。
 
 ---
 

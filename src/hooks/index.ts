@@ -10,7 +10,7 @@ export { useVideoRecorder } from "./useVideoRecorder";
 export { useBluetooth } from "./useBluetooth";
 export { useOfflineStorage } from "./useOfflineStorage";
 export { usePushNotification } from "./usePushNotification";
-export { useWatermark } from "./useWatermark";
+export { useWatermark, WatermarkError } from "./useWatermark";
 export { usePermission } from "./usePermission";
 export { useFileDownload } from "./useFileDownload";
 export { extendHook, clearExtensions } from "./extend";
@@ -42,7 +42,14 @@ export type {
   UseOfflineStorageReturn,
 } from "./useOfflineStorage";
 export type { UsePushNotificationReturn } from "./usePushNotification";
-export type { UseWatermarkOptions, UseWatermarkReturn } from "./useWatermark";
+export type {
+  UseWatermarkOptions,
+  UseWatermarkReturn,
+  WatermarkErrorCode,
+  WatermarkFailureMode,
+  WatermarkMode,
+  WatermarkPosition,
+} from "./useWatermark";
 export type { UsePermissionReturn, PermissionName } from "./usePermission";
 export type {
   UseFileDownloadOptions,

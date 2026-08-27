@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- `useWatermark` 支持多行文字、旧 WebView 图片元素解码降级、移动端 Canvas 尺寸保护和并发 loading
+- 新增 `buildWatermarkFormData` 与统一 `watermarkPolicy` 服务端水印契约，拍照、相册和既有图片共用
+
+### Fixes
+
+- 水印输出使用实际 Blob MIME 并同步修正扩展名；不支持的原图格式安全回退 JPEG
+- 增加参数边界、解码超时、结构化错误与 `failureMode: 'throw'`，防止必须水印场景静默上传原图
+
+### Compatibility
+
+- 未传策略或 `enabled=false` 时不增加任何上传字段；原有拍照、相册和上传行为保持不变
+
 ## v1.1.4 (2026-08-13)
 
 ### Fixes

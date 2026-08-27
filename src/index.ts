@@ -35,7 +35,15 @@ export { useVideoRecorder } from "./hooks/useVideoRecorder";
 export { useBluetooth } from "./hooks/useBluetooth";
 export { useOfflineStorage } from "./hooks/useOfflineStorage";
 export { usePushNotification } from "./hooks/usePushNotification";
-export { useWatermark } from "./hooks/useWatermark";
+export { useWatermark, WatermarkError } from "./hooks/useWatermark";
+export type {
+  UseWatermarkOptions,
+  UseWatermarkReturn,
+  WatermarkErrorCode,
+  WatermarkFailureMode,
+  WatermarkMode,
+  WatermarkPosition,
+} from "./hooks/useWatermark";
 export { usePermission } from "./hooks/usePermission";
 export { useFileDownload } from "./hooks/useFileDownload";
 
