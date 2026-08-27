@@ -25,6 +25,7 @@ export {
   getMbaseTransportStatus,
   MbaseBridgeError,
   postMbaseMessage,
+  reportErrorToHost,
   resolveMbaseOrigin,
   waitForMbaseAppBridge,
 } from "./transports/mbase";

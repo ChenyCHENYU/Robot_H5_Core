@@ -71,6 +71,35 @@ const { scan } = useQrScanner();
 
 无需直接访问 `plus`、`uni` 或修改业务调用点。
 
+## 能力覆盖
+
+适配器（`bridge/adapters/mbase.ts`）在宿主为 mbase 时自动启用，未覆盖能力沿用 browser 降级：
+
+| 基座能力        | Core 集成点                                       | 说明                                                       |
+| --------------- | ------------------------------------------------- | ---------------------------------------------------------- |
+| takePhoto       | `useCamera().capture`                             | 拍照返回 File                                              |
+| scan            | `useQrScanner().scan`                             | 扫码                                                       |
+| getLocation     | `useLocation().getCurrent`                        | 含坐标质量元数据                                           |
+| filePreview     | `useFilePreview().preview`                        | App 容器内自动委托基座下载并用系统查看器打开                |
+| nfcRead         | `useNfc().read`                                   | 标签 ID（HEX）；设备不支持时返回 `unsupported`              |
+| signature       | `useSignature({ preferHostBridge: true })`        | 拉起基座签名板，返回签名 PNG File；否则本地 Canvas          |
+| audioRecord     | `useAudioRecorder({ preferHostBridge: true })`    | 三段式 start/stop，返回 mp3/aac Blob；否则 MediaRecorder     |
+| fileDownload    | `useFileDownload({ useHostBridge: true })`        | 基座下载 + 系统查看器存储菜单；成功后返回 null（无 File）    |
+
+Hook 级委托（signature/audioRecord/fileDownload）均为 **opt-in**：不开启时行为与旧版完全一致；iframe（钉钉）宿主不注册 App 专属能力，自动回退浏览器实现。
+
+## 子应用错误上报
+
+```ts
+import { reportErrorToHost } from "@robot-h5/core/bridge";
+
+window.addEventListener("error", (e) => {
+  reportErrorToHost({ message: e.message, stack: e.error?.stack, page: location.pathname });
+});
+```
+
+基座将消息脱敏（token/openid 打码）、限长后并入本机错误队列，在「设置 → 网络诊断」页统一查看与导出；转发失败静默，不影响业务。微信小程序宿主暂不支持该通道。
+
 ## 统一坐标输出
 
 - mbase App/钉钉宿主由基座返回目标坐标系，core 透传坐标质量元数据。

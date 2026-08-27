@@ -1,11 +1,20 @@
 import { ref, type Ref } from "vue";
 import { runBeforeExtensions, runAfterExtensions } from "../extend";
+import { detectMbaseHost } from "../../bridge/detector";
+import { invokeMbaseCapability } from "../../bridge/mbase";
 
 export interface UseFileDownloadOptions {
   /** 自定义请求头（支持函数动态生成） */
   headers?: Record<string, string> | (() => Record<string, string>);
   /** 是否携带 cookie */
   withCredentials?: boolean;
+  /**
+   * 优先使用基座下载（wl-mbase App 容器）。
+   * 开启后 download() 委托基座下载并用系统查看器呈现（分享/存储菜单可另存），
+   * 此时无法返回浏览器 File 对象，成功后返回 null 且进度直接置 100。
+   * 非基座环境自动回退浏览器下载，行为不变。默认 false。
+   */
+  useHostBridge?: boolean;
 }
 
 export interface DownloadProgress {
@@ -97,6 +106,84 @@ export function useFileDownload(
     }, 100);
   }
 
+  /** 基座下载模式：委托基座下载并用系统查看器呈现；无浏览器 File 可返回。 */
+  async function downloadViaHostBridge(
+    url: string,
+    filename?: string,
+  ): Promise<File | null> {
+    await invokeMbaseCapability("fileDownload", { url, fileName: filename });
+    progress.value = { loaded: 1, total: 1, percent: 100 };
+    return null;
+  }
+
+  /** 浏览器模式：流式下载 + 进度 + 触发保存。 */
+  async function downloadViaFetch(
+    url: string,
+    filename?: string,
+  ): Promise<File | null> {
+    const response = await fetch(url, {
+      headers: resolveHeaders(),
+      credentials: opts.withCredentials ? "include" : "same-origin",
+      signal: abortController!.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `[h5-core] 下载失败: HTTP ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const contentLength = Number(
+      response.headers.get("content-length") || 0,
+    );
+    progress.value.total = contentLength;
+
+    const resolvedName = resolveFilename(response, url, filename);
+    const contentType =
+      response.headers.get("content-type") || "application/octet-stream";
+
+    // 流式读取（支持进度）
+    if (response.body && contentLength > 0) {
+      const reader = response.body.getReader();
+      const chunks: BlobPart[] = [];
+      let loaded = 0;
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        progress.value = {
+          loaded,
+          total: contentLength,
+          percent: Math.round((loaded / contentLength) * 100),
+        };
+      }
+
+      // 合并 chunks
+      const blob = new Blob(chunks, { type: contentType });
+      const file = new File([blob], resolvedName, { type: contentType });
+
+      triggerSave(blob, resolvedName);
+      progress.value.percent = 100;
+
+      return file;
+    }
+
+    // 降级：无 body 或无 content-length 时直接读 blob
+    const blob = await response.blob();
+    const file = new File([blob], resolvedName, { type: contentType });
+
+    triggerSave(blob, resolvedName);
+    progress.value = {
+      loaded: blob.size,
+      total: blob.size,
+      percent: 100,
+    };
+
+    return file;
+  }
+
   async function download(
     url: string,
     filename?: string,
@@ -109,66 +196,11 @@ export function useFileDownload(
     try {
       await runBeforeExtensions("useFileDownload", [url, filename]);
 
-      const response = await fetch(url, {
-        headers: resolveHeaders(),
-        credentials: opts.withCredentials ? "include" : "same-origin",
-        signal: abortController.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `[h5-core] 下载失败: HTTP ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const contentLength = Number(
-        response.headers.get("content-length") || 0,
-      );
-      progress.value.total = contentLength;
-
-      const resolvedName = resolveFilename(response, url, filename);
-      const contentType =
-        response.headers.get("content-type") || "application/octet-stream";
-
-      // 流式读取（支持进度）
-      if (response.body && contentLength > 0) {
-        const reader = response.body.getReader();
-        const chunks: BlobPart[] = [];
-        let loaded = 0;
-
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          loaded += value.length;
-          progress.value = {
-            loaded,
-            total: contentLength,
-            percent: Math.round((loaded / contentLength) * 100),
-          };
-        }
-
-        // 合并 chunks
-        const blob = new Blob(chunks, { type: contentType });
-        const file = new File([blob], resolvedName, { type: contentType });
-
-        triggerSave(blob, resolvedName);
-        progress.value.percent = 100;
-
-        const result = await runAfterExtensions("useFileDownload", file);
-        return result;
-      }
-
-      // 降级：无 body 或无 content-length 时直接读 blob
-      const blob = await response.blob();
-      const file = new File([blob], resolvedName, { type: contentType });
-
-      triggerSave(blob, resolvedName);
-      progress.value = {
-        loaded: blob.size,
-        total: blob.size,
-        percent: 100,
-      };
+      const file =
+        opts.useHostBridge && detectMbaseHost() === "app"
+          ? await downloadViaHostBridge(url, filename)
+          : await downloadViaFetch(url, filename);
+      if (!file) return null;
 
       const result = await runAfterExtensions("useFileDownload", file);
       return result;

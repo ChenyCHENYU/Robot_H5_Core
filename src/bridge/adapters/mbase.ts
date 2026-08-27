@@ -1,8 +1,10 @@
 import { createFallbackAdapter } from "./stub";
 import { invokeMbaseCapability } from "../mbase";
+import { base64ToFile } from "../dataurl";
 import type {
   Coordinates,
   LocationQueryOptions,
+  NFCData,
   ScanOptions,
 } from "../types";
 
@@ -23,38 +25,6 @@ import type {
  * 仅 camera / scanner / location 走桥接；nfc / bluetooth / file / notification
  * 沿用 browser 降级实现（基座未代理这些能力）。
  */
-
-/**
- * 规整钉钉返回的 base64：
- * 钉钉 biz.util.uploadImageFromCamera 返回的 base64 常带 MIME 换行/空白，
- * 部分版本用 URL-safe 字符(-、_)或缺少 = 填充，标准 atob 会直接抛错，统一规整。
- */
-function sanitizeBase64(raw: string): string {
-  let b = raw
-    .replace(/^data:[^;]+;base64,/, "")
-    .replace(/\s/g, "")
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  const pad = b.length % 4;
-  if (pad) b += "=".repeat(4 - pad);
-  return b;
-}
-
-/** base64 / dataURI → File（钉钉 iframe 沙箱可能拦截 fetch(data:)，故直接 atob） */
-function base64ToFile(src: string, filename: string): File {
-  const mimeMatch = /^data:([^;]+);base64,/.exec(src);
-  const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-  const rawB64 = mimeMatch ? src.slice(mimeMatch[0].length) : src;
-  const b64 = sanitizeBase64(rawB64);
-  try {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return new File([bytes], filename, { type: mime });
-  } catch {
-    throw new Error("[h5-core] 图片解码失败，请重试");
-  }
-}
 
 /** core 扫码类型 → 钉钉 scan 类型 */
 function toDingTalkScanType(type?: ScanOptions["type"]): string {
@@ -154,6 +124,38 @@ export default createFallbackAdapter("mbase", {
         });
       return () => {
         cancelled = true;
+      };
+    },
+  },
+
+  file: {
+    /**
+     * 基座 App 容器内的附件预览：下载后用系统文档查看器打开。
+     * 基座侧要求 HTTPS 绝对地址；H5 iframe 宿主未注册该能力，
+     * 调用会被基座拒绝并抛 MbaseBridgeError，调用方可回退 window.open。
+     */
+    async preview(url: string, name?: string): Promise<void> {
+      await invokeMbaseCapability("filePreview", {
+        url,
+        fileName: name,
+      });
+    },
+  },
+
+  nfc: {
+    /** 基座 App 容器 NFC 读标签（依赖设备支持，不支持时基座返回 unsupported）。 */
+    async read(): Promise<NFCData> {
+      const data = await invokeMbaseCapability<{ id?: string; tech?: string }>(
+        "nfcRead",
+        { timeoutMs: 15000 },
+      );
+      if (!data?.id) {
+        throw new Error("[h5-core] 基座未返回 NFC 标签标识");
+      }
+      return {
+        id: data.id,
+        type: data.tech || "tag",
+        records: [],
       };
     },
   },

@@ -1,10 +1,20 @@
 import { ref, type Ref, onUnmounted } from "vue";
 import { runBeforeExtensions, runAfterExtensions } from "../extend";
+import { detectMbaseHost } from "../../bridge/detector";
+import { invokeMbaseCapability } from "../../bridge/mbase";
+import { base64ToFile } from "../../bridge/dataurl";
 
 export interface UseSignatureOptions {
   lineWidth?: number;
   strokeColor?: string;
   backgroundColor?: string;
+  /**
+   * 优先使用基座手写签名板（wl-mbase App 容器）。
+   * 开启后 save() 拉起基座签名板并直接返回签名 PNG File；
+   * undo 在基座模式下不可用（基座签名板自带清空/取消）。
+   * 非基座环境自动回退本地 Canvas，行为不变。默认 false。
+   */
+  preferHostBridge?: boolean;
 }
 
 export interface UseSignatureReturn {
@@ -143,21 +153,42 @@ export function useSignature(options?: UseSignatureOptions): UseSignatureReturn 
     redraw();
   }
 
+  /** 基座签名板模式：拉起宿主签名板并返回签名 PNG File。 */
+  async function saveViaHostBridge(): Promise<File | null> {
+    const data = await invokeMbaseCapability<{ image?: string }>(
+      "signature",
+      {},
+    );
+    if (!data?.image) return null;
+    return base64ToFile(data.image, `signature-${Date.now()}.png`);
+  }
+
+  /** 本地 Canvas 模式：导出画布为 File。 */
+  async function saveFromCanvas(
+    type: string,
+    quality: number,
+  ): Promise<File | null> {
+    if (!canvas || isEmpty.value) return null;
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas!.toBlob(resolve, type, quality),
+    );
+    if (!blob) return null;
+    const ext = type.split("/")[1] || "png";
+    return new File([blob], `signature-${Date.now()}.${ext}`, { type });
+  }
+
   async function save(
     type = "image/png",
     quality = 0.92,
   ): Promise<File | null> {
-    if (!canvas || isEmpty.value) return null;
     try {
       await runBeforeExtensions("useSignature", []);
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas!.toBlob(resolve, type, quality),
-      );
-      if (!blob) return null;
-      const ext = type.split("/")[1] || "png";
-      const file = new File([blob], `signature-${Date.now()}.${ext}`, { type });
-      const result = await runAfterExtensions("useSignature", file);
-      return result;
+      const file =
+        opts.preferHostBridge && detectMbaseHost() === "app"
+          ? await saveViaHostBridge()
+          : await saveFromCanvas(type, quality);
+      if (!file) return null;
+      return await runAfterExtensions("useSignature", file);
     } catch {
       return null;
     }

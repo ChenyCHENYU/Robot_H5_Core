@@ -314,6 +314,32 @@ export async function postMbaseMessage(
 }
 
 /**
+ * 将子应用运行错误转发给 wl-mbase 基座（action: 'report-error'）。
+ *
+ * 基座侧只读、脱敏、限长后并入本机错误队列（网络诊断页可见）。
+ * 转发失败静默处理：错误上报自身绝不能反向制造新错误或中断业务。
+ * 微信小程序宿主不支持该通道，调用会被静默忽略。
+ */
+export function reportErrorToHost(info: {
+  message: string;
+  stack?: string;
+  page?: string;
+}): void {
+  try {
+    void postMbaseMessage({
+      action: "report-error",
+      message: String(info?.message || "").slice(0, 500),
+      stack: info?.stack ? String(info.stack).slice(0, 1000) : undefined,
+      page: info?.page ? String(info.page).slice(0, 120) : undefined,
+    }).catch(() => {
+      /* 静默 */
+    });
+  } catch {
+    /* 静默 */
+  }
+}
+
+/**
  *
  */
 export function getMbaseTransportStatus(options?: MbaseBridgeOptions) {
